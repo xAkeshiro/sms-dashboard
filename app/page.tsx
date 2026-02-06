@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { AssociationCard } from "@/components/association-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ASSOCIATIONS } from "@/lib/constants";
-import { Users, Send, MessageSquare, Activity } from "lucide-react";
 
 interface TagData {
   id: number;
@@ -55,105 +53,57 @@ export default function DashboardPage() {
   return (
     <>
       <Nav />
-      <main className="pt-20 pb-12 px-4 sm:px-6 max-w-7xl mx-auto">
-        {/* Welcome header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back. Manage your association SMS communications.
-          </p>
+      <main className="pt-20 pb-12 px-6 max-w-6xl mx-auto">
+        <div className="flex items-baseline justify-between mb-10">
+          <div>
+            <h1 className="text-lg font-semibold">Dashboard</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Association SMS management
+            </p>
+          </div>
+          <div className="flex items-baseline gap-6 text-right">
+            <div>
+              <p className="text-2xl font-semibold tabular-nums">
+                {loading ? "..." : totalContacts.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                Total contacts
+              </p>
+            </div>
+            <div>
+              <p className="text-2xl font-semibold tabular-nums">
+                {loading ? "..." : tags.length}
+              </p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                Tags
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Error state */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl border border-destructive/30 bg-destructive/5 text-destructive text-sm">
-            {error} — Make sure your Mailchimp API credentials are configured.
+          <div className="mb-6 py-3 px-4 rounded-lg border border-destructive/20 text-destructive text-xs">
+            {error} — Check Mailchimp API credentials.
           </div>
         )}
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Total Contacts
-                </p>
-                <p className="text-xl font-bold tabular-nums">
-                  {loading ? "..." : totalContacts.toLocaleString()}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Associations
-                </p>
-                <p className="text-xl font-bold">{ASSOCIATIONS.length}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <Send className="w-5 h-5 text-green-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Available Tags
-                </p>
-                <p className="text-xl font-bold tabular-nums">
-                  {loading ? "..." : tags.length}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-purple-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Status
-                </p>
-                <p className="text-xl font-bold">
-                  {loading ? "..." : error ? "Error" : "Connected"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Association cards */}
-        <div className="mb-6">
-          <CardHeader className="px-0">
-            <CardTitle>Associations</CardTitle>
-          </CardHeader>
+        <div className="mb-4">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            Associations
+          </p>
         </div>
 
         {loading ? (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-32 bg-secondary/30 rounded-xl animate-pulse"
+                className="h-[72px] bg-secondary/20 rounded-lg animate-pulse"
               />
             ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-2">
             {ASSOCIATIONS.map((association) => (
               <AssociationCard
                 key={association.id}

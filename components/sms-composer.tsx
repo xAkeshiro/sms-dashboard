@@ -1,8 +1,6 @@
 "use client";
 
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SMS_CHAR_LIMIT, MERGE_FIELDS } from "@/lib/constants";
 
 interface SmsComposerProps {
@@ -13,83 +11,65 @@ interface SmsComposerProps {
 export function SmsComposer({ message, onMessageChange }: SmsComposerProps) {
   const charCount = message.length;
   const segmentCount = Math.ceil(charCount / SMS_CHAR_LIMIT) || 1;
-  const charsInCurrentSegment = charCount % SMS_CHAR_LIMIT || (charCount > 0 ? SMS_CHAR_LIMIT : 0);
+  const charsInCurrentSegment =
+    charCount % SMS_CHAR_LIMIT || (charCount > 0 ? SMS_CHAR_LIMIT : 0);
 
   function insertMergeField(field: string) {
     onMessageChange(message + field);
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="text-sm font-medium mb-2 block">Message Body</label>
-        <Textarea
-          placeholder="Type your SMS message here..."
-          value={message}
-          onChange={(e) => onMessageChange(e.target.value)}
-          rows={5}
-          className="bg-secondary/30 resize-none text-base leading-relaxed"
-        />
-      </div>
+    <div className="space-y-3">
+      <Textarea
+        placeholder="Type your SMS message..."
+        value={message}
+        onChange={(e) => onMessageChange(e.target.value)}
+        rows={5}
+        className="resize-none text-sm leading-relaxed bg-secondary/30 border-border/50 focus:border-primary/30"
+      />
 
-      {/* Character counter */}
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-3">
-          <span className="text-muted-foreground">
-            {charCount} character{charCount !== 1 ? "s" : ""}
-          </span>
-          <Badge variant="outline" className="font-mono text-xs">
-            {segmentCount} SMS segment{segmentCount !== 1 ? "s" : ""}
-          </Badge>
-        </div>
-        <span className="text-muted-foreground text-xs">
-          {SMS_CHAR_LIMIT - charsInCurrentSegment} chars remaining in segment
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>
+          {charCount}/{SMS_CHAR_LIMIT * segmentCount} &middot; {segmentCount}{" "}
+          segment{segmentCount !== 1 ? "s" : ""}
         </span>
+        <span>{SMS_CHAR_LIMIT - charsInCurrentSegment} remaining</span>
       </div>
 
-      {/* Progress bar for current segment */}
-      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+      <div className="h-px bg-border/50 relative">
         <div
-          className="h-full bg-primary rounded-full transition-all duration-200"
+          className="h-px bg-primary transition-all duration-200 absolute inset-y-0 left-0"
           style={{
             width: `${(charsInCurrentSegment / SMS_CHAR_LIMIT) * 100}%`,
           }}
         />
       </div>
 
-      {/* Merge fields */}
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-2 block">
-          Insert Merge Field
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {MERGE_FIELDS.map((field) => (
-            <Button
-              key={field.value}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => insertMergeField(field.value)}
-              className="text-xs h-7"
-            >
-              {field.label}
-            </Button>
-          ))}
-        </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">
+          Insert:
+        </span>
+        {MERGE_FIELDS.map((field) => (
+          <button
+            key={field.value}
+            type="button"
+            onClick={() => insertMergeField(field.value)}
+            className="text-[11px] text-muted-foreground hover:text-primary px-1.5 py-0.5 rounded border border-border/50 hover:border-primary/30 transition-colors"
+          >
+            {field.label}
+          </button>
+        ))}
       </div>
 
-      {/* Message preview */}
       {message && (
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">
+        <div className="pt-2">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
             Preview
-          </label>
-          <div className="bg-secondary/50 rounded-xl p-4 border border-border">
-            <div className="bg-primary/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%]">
-              <p className="text-sm whitespace-pre-wrap break-words">
-                {message}
-              </p>
-            </div>
+          </p>
+          <div className="rounded-lg bg-secondary/30 p-4">
+            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+              {message}
+            </p>
           </div>
         </div>
       )}

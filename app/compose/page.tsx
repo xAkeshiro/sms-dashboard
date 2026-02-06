@@ -9,9 +9,6 @@ import { SmsComposer } from "@/components/sms-composer";
 import { RecipientCounter } from "@/components/recipient-counter";
 import { SendConfirmationModal } from "@/components/send-confirmation-modal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ASSOCIATIONS } from "@/lib/constants";
 import {
   ChevronRight,
@@ -32,9 +29,7 @@ function ComposeContent() {
   const router = useRouter();
 
   const [step, setStep] = useState(1);
-  const [selectedAssociations, setSelectedAssociations] = useState<string[]>(
-    []
-  );
+  const [selectedAssociations, setSelectedAssociations] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<TagData[]>([]);
   const [excludedTagIds, setExcludedTagIds] = useState<number[]>([]);
   const [message, setMessage] = useState("");
@@ -49,7 +44,6 @@ function ComposeContent() {
     message: string;
   } | null>(null);
 
-  // Pre-select association from URL params
   useEffect(() => {
     const assoc = searchParams.get("association");
     if (assoc && ASSOCIATIONS.some((a) => a.id === assoc)) {
@@ -57,7 +51,6 @@ function ComposeContent() {
     }
   }, [searchParams]);
 
-  // Fetch all tags
   useEffect(() => {
     async function loadTags() {
       try {
@@ -66,7 +59,7 @@ function ComposeContent() {
         const data = await res.json();
         setAllTags(data.tags || []);
       } catch {
-        // Tags will be empty, handled in UI
+        // handled in UI
       } finally {
         setTagsLoading(false);
       }
@@ -74,7 +67,6 @@ function ComposeContent() {
     loadTags();
   }, []);
 
-  // Get tag IDs for selected associations
   const getSelectedTagIds = useCallback((): number[] => {
     return selectedAssociations
       .map((id) => {
@@ -88,47 +80,35 @@ function ComposeContent() {
       .filter((id): id is number => id !== null);
   }, [selectedAssociations, allTags]);
 
-  // Exclusion tags: all tags except association tags
   const exclusionTags = allTags.filter(
-    (t) =>
-      !ASSOCIATIONS.some(
-        (a) => a.tag.toUpperCase() === t.name.toUpperCase()
-      )
+    (t) => !ASSOCIATIONS.some((a) => a.tag.toUpperCase() === t.name.toUpperCase())
   );
 
-  // Fetch recipient count when selections change
   const fetchCount = useCallback(async () => {
     const includeIds = getSelectedTagIds();
     if (includeIds.length === 0) {
       setRecipientCount(null);
       return;
     }
-
     setCountLoading(true);
     setCountError(null);
-
     try {
       const params = new URLSearchParams();
       params.set("include", includeIds.join(","));
-      if (excludedTagIds.length > 0) {
-        params.set("exclude", excludedTagIds.join(","));
-      }
-
+      if (excludedTagIds.length > 0) params.set("exclude", excludedTagIds.join(","));
       const res = await fetch(`/api/segments/preview?${params}`);
-      if (!res.ok) throw new Error("Failed to preview count");
+      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       setRecipientCount(data.count);
     } catch {
-      setCountError("Unable to fetch recipient count");
+      setCountError("Unable to fetch count");
     } finally {
       setCountLoading(false);
     }
   }, [getSelectedTagIds, excludedTagIds]);
 
   useEffect(() => {
-    if (step >= 2) {
-      fetchCount();
-    }
+    if (step >= 2) fetchCount();
   }, [step, fetchCount]);
 
   function toggleAssociation(id: string) {
@@ -163,83 +143,65 @@ function ComposeContent() {
           excludeTags: excludedTagIds,
         }),
       });
-
       const data = await res.json();
-      if (res.ok) {
-        setSendResult({
-          success: true,
-          message: `SMS campaign sent successfully to ${data.recipientCount} recipients.`,
-        });
-        setShowConfirm(false);
-      } else {
-        setSendResult({
-          success: false,
-          message: data.error || "Failed to send SMS campaign",
-        });
-        setShowConfirm(false);
-      }
-    } catch {
       setSendResult({
-        success: false,
-        message: "Network error. Please try again.",
+        success: res.ok,
+        message: res.ok
+          ? `Sent to ${data.recipientCount} recipients.`
+          : data.error || "Failed to send",
       });
+      setShowConfirm(false);
+    } catch {
+      setSendResult({ success: false, message: "Network error." });
       setShowConfirm(false);
     } finally {
       setSending(false);
     }
   }
 
-  const canProceedStep1 = selectedAssociations.length > 0;
-  const canProceedStep3 = message.trim().length > 0;
-
   const steps = [
-    { number: 1, label: "Select Association(s)" },
-    { number: 2, label: "Exclusions" },
-    { number: 3, label: "Compose Message" },
-    { number: 4, label: "Review & Send" },
+    { n: 1, label: "Recipients" },
+    { n: 2, label: "Exclusions" },
+    { n: 3, label: "Compose" },
+    { n: 4, label: "Review" },
   ];
 
-  // Show success/error result
   if (sendResult) {
     return (
       <>
         <Nav />
-        <main className="pt-20 pb-12 px-4 sm:px-6 max-w-3xl mx-auto">
-          <Card className="mt-8">
-            <CardContent className="p-8 text-center">
-              {sendResult.success ? (
-                <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
-              ) : (
-                <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-              )}
-              <h2 className="text-xl font-bold mb-2">
-                {sendResult.success ? "SMS Sent!" : "Send Failed"}
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                {sendResult.message}
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/history")}
-                >
-                  View History
-                </Button>
-                <Button
-                  onClick={() => {
-                    setSendResult(null);
-                    setStep(1);
-                    setSelectedAssociations([]);
-                    setExcludedTagIds([]);
-                    setMessage("");
-                    setRecipientCount(null);
-                  }}
-                >
-                  Send Another
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <main className="pt-20 pb-12 px-6 max-w-2xl mx-auto">
+          <div className="mt-16 text-center">
+            {sendResult.success ? (
+              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-4" />
+            ) : (
+              <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
+            )}
+            <h2 className="text-sm font-semibold mb-1">
+              {sendResult.success ? "Sent" : "Failed"}
+            </h2>
+            <p className="text-xs text-muted-foreground mb-8">
+              {sendResult.message}
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="ghost" size="sm" onClick={() => router.push("/history")}>
+                History
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSendResult(null);
+                  setStep(1);
+                  setSelectedAssociations([]);
+                  setExcludedTagIds([]);
+                  setMessage("");
+                  setRecipientCount(null);
+                }}
+              >
+                Send Another
+              </Button>
+            </div>
+          </div>
         </main>
       </>
     );
@@ -248,272 +210,200 @@ function ComposeContent() {
   return (
     <>
       <Nav />
-      <main className="pt-20 pb-12 px-4 sm:px-6 max-w-4xl mx-auto">
+      <main className="pt-20 pb-12 px-6 max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">Compose SMS</h1>
-          <p className="text-muted-foreground mt-1">
-            Send SMS messages to association members
-          </p>
+          <h1 className="text-lg font-semibold">Compose</h1>
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
+        <div className="flex items-center gap-px mb-8">
           {steps.map((s, i) => (
-            <div key={s.number} className="flex items-center">
+            <div key={s.n} className="flex items-center">
               <button
                 type="button"
-                onClick={() => {
-                  if (s.number <= step) setStep(s.number);
-                }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                  step === s.number
-                    ? "bg-primary/10 text-primary border border-primary/20"
-                    : step > s.number
-                      ? "bg-green-500/10 text-green-400"
-                      : "text-muted-foreground"
+                onClick={() => s.n <= step && setStep(s.n)}
+                className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                  step === s.n
+                    ? "text-primary"
+                    : step > s.n
+                      ? "text-foreground"
+                      : "text-muted-foreground/50"
                 }`}
               >
                 <span
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    step === s.number
-                      ? "bg-primary text-primary-foreground"
-                      : step > s.number
-                        ? "bg-green-500 text-white"
-                        : "bg-secondary text-muted-foreground"
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold border ${
+                    step === s.n
+                      ? "border-primary text-primary"
+                      : step > s.n
+                        ? "border-foreground/20 text-foreground"
+                        : "border-border text-muted-foreground/50"
                   }`}
                 >
-                  {step > s.number ? "✓" : s.number}
+                  {step > s.n ? "✓" : s.n}
                 </span>
                 <span className="hidden sm:block">{s.label}</span>
               </button>
               {i < steps.length - 1 && (
-                <ChevronRight className="w-4 h-4 text-muted-foreground mx-1 shrink-0" />
+                <div className="w-8 h-px bg-border/50 mx-2" />
               )}
             </div>
           ))}
         </div>
 
-        {/* Step 1: Select Associations */}
+        {/* Step 1 */}
         {step === 1 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Association(s)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Choose one or more associations to target with your SMS message.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {ASSOCIATIONS.map((assoc) => (
-                  <AssociationCard
-                    key={assoc.id}
-                    id={assoc.id}
-                    tag={assoc.tag}
-                    name={assoc.name}
-                    accent={assoc.accent}
-                    memberCount={
-                      allTags.find(
-                        (t) =>
-                          t.name.toUpperCase() === assoc.tag.toUpperCase()
-                      )?.member_count
-                    }
-                    selected={selectedAssociations.includes(assoc.id)}
-                    selectable
-                    onSelect={toggleAssociation}
-                    compact
-                  />
-                ))}
-              </div>
-
-              <div className="mt-6 flex justify-end">
-                <Button
-                  onClick={() => setStep(2)}
-                  disabled={!canProceedStep1}
-                >
-                  Next: Exclusions
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Select one or more associations.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {ASSOCIATIONS.map((assoc) => (
+                <AssociationCard
+                  key={assoc.id}
+                  id={assoc.id}
+                  tag={assoc.tag}
+                  name={assoc.name}
+                  accent={assoc.accent}
+                  memberCount={
+                    allTags.find((t) => t.name.toUpperCase() === assoc.tag.toUpperCase())
+                      ?.member_count
+                  }
+                  selected={selectedAssociations.includes(assoc.id)}
+                  selectable
+                  onSelect={toggleAssociation}
+                  compact
+                />
+              ))}
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button
+                size="sm"
+                onClick={() => setStep(2)}
+                disabled={selectedAssociations.length === 0}
+              >
+                Next
+                <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
 
-        {/* Step 2: Exclusions */}
+        {/* Step 2 */}
         {step === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Exclusions (Optional)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Optionally exclude contacts that have specific tags. This helps
-                you avoid sending to inactive members, VIPs, or other groups.
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Optionally exclude contacts by tag.
               </p>
+              <RecipientCounter count={recipientCount} loading={countLoading} error={countError} />
+            </div>
 
-              <RecipientCounter
-                count={recipientCount}
-                loading={countLoading}
-                error={countError}
+            {tagsLoading ? (
+              <div className="h-16 bg-secondary/20 rounded-lg animate-pulse" />
+            ) : (
+              <TagSelector
+                tags={exclusionTags}
+                selectedIds={excludedTagIds}
+                onSelectionChange={setExcludedTagIds}
+                label="Exclude by tag"
               />
+            )}
 
-              <div className="mt-4">
-                {tagsLoading ? (
-                  <div className="h-20 bg-secondary/30 rounded-lg animate-pulse" />
-                ) : (
-                  <TagSelector
-                    tags={exclusionTags}
-                    selectedIds={excludedTagIds}
-                    onSelectionChange={setExcludedTagIds}
-                    label="Exclude contacts with these tags"
-                    placeholder="Search exclusion tags..."
-                  />
-                )}
-              </div>
-
-              <Separator className="my-6" />
-
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Back
-                </Button>
-                <Button onClick={() => setStep(3)}>
-                  Next: Compose
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="h-px bg-border/30" />
+            <div className="flex justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                Back
+              </Button>
+              <Button size="sm" onClick={() => setStep(3)}>
+                Next
+                <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
 
-        {/* Step 3: Compose */}
+        {/* Step 3 */}
         {step === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Compose Message</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <RecipientCounter
-                  count={recipientCount}
-                  loading={countLoading}
-                  error={countError}
-                />
-              </div>
-
-              <SmsComposer message={message} onMessageChange={setMessage} />
-
-              <Separator className="my-6" />
-
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(2)}>
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Back
-                </Button>
-                <Button
-                  onClick={() => setStep(4)}
-                  disabled={!canProceedStep3}
-                >
-                  Next: Review
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <RecipientCounter count={recipientCount} loading={countLoading} error={countError} />
+            <SmsComposer message={message} onMessageChange={setMessage} />
+            <div className="h-px bg-border/30" />
+            <div className="flex justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                Back
+              </Button>
+              <Button size="sm" onClick={() => setStep(4)} disabled={!message.trim()}>
+                Review
+                <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
 
-        {/* Step 4: Review & Send */}
+        {/* Step 4 */}
         {step === 4 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Review & Send</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Summary */}
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      Sending To
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {getSelectedNames().map((name) => (
-                        <Badge key={name} variant="secondary">
-                          {name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                      Excluding
-                    </p>
-                    {getExcludedNames().length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {getExcludedNames().map((name) => (
-                          <Badge key={name} variant="outline">
-                            {name}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">None</p>
-                    )}
-                  </div>
-                </div>
-
-                <RecipientCounter
-                  count={recipientCount}
-                  loading={countLoading}
-                  error={countError}
-                />
-
-                <Separator />
-
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                    Message
-                  </p>
-                  <div className="bg-secondary/50 rounded-xl p-4 border border-border">
-                    <div className="bg-primary/10 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%]">
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {message}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {message.length} characters,{" "}
-                    {Math.ceil(message.length / 160) || 1} SMS segment(s)
-                  </p>
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setStep(3)}>
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                    Edit Message
-                  </Button>
-                  <Button onClick={() => setShowConfirm(true)}>
-                    <Send className="w-4 h-4 mr-1" />
-                    Send SMS
-                  </Button>
-                </div>
+          <div className="space-y-6">
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">To</span>
+                <span className="font-medium">{getSelectedNames().join(", ")}</span>
               </div>
+              {getExcludedNames().length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Excluding</span>
+                  <span className="text-muted-foreground">{getExcludedNames().join(", ")}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Recipients</span>
+                <span className="font-semibold tabular-nums">
+                  {recipientCount !== null ? recipientCount.toLocaleString() : "—"}
+                </span>
+              </div>
+            </div>
 
-              <SendConfirmationModal
-                open={showConfirm}
-                onOpenChange={setShowConfirm}
-                onConfirm={handleSend}
-                associations={getSelectedNames()}
-                exclusions={getExcludedNames()}
-                recipientCount={recipientCount}
-                message={message}
-                sending={sending}
-              />
-            </CardContent>
-          </Card>
+            <div className="h-px bg-border/30" />
+
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                Message
+              </p>
+              <div className="rounded-lg bg-secondary/30 p-4">
+                <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+                  {message}
+                </p>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                {message.length} chars &middot; {Math.ceil(message.length / 160) || 1} segment(s)
+              </p>
+            </div>
+
+            <div className="h-px bg-border/30" />
+
+            <div className="flex justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setStep(3)}>
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                Edit
+              </Button>
+              <Button size="sm" onClick={() => setShowConfirm(true)}>
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                Send
+              </Button>
+            </div>
+
+            <SendConfirmationModal
+              open={showConfirm}
+              onOpenChange={setShowConfirm}
+              onConfirm={handleSend}
+              associations={getSelectedNames()}
+              exclusions={getExcludedNames()}
+              recipientCount={recipientCount}
+              message={message}
+              sending={sending}
+            />
+          </div>
         )}
       </main>
     </>
@@ -524,8 +414,8 @@ export default function ComposePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="min-h-screen flex items-center justify-center">
+          <span className="text-xs text-muted-foreground">Loading...</span>
         </div>
       }
     >

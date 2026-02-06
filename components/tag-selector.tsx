@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface Tag {
   id: number;
@@ -50,70 +49,66 @@ export function TagSelector({
   return (
     <div className="space-y-2">
       {label && (
-        <label className="text-sm font-medium text-foreground">{label}</label>
+        <label className="text-xs text-muted-foreground">{label}</label>
       )}
 
-      {/* Selected tags display */}
       {selectedTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
+        <div className="flex flex-wrap gap-1 mb-2">
           {selectedTags.map((tag) => (
-            <Badge
+            <span
               key={tag.id}
-              variant="secondary"
-              className="flex items-center gap-1 pr-1"
+              className="inline-flex items-center gap-1 text-xs bg-secondary px-2 py-0.5 rounded"
             >
               {tag.name}
               <button
                 type="button"
                 onClick={() => removeTag(tag.id)}
-                className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                className="text-muted-foreground hover:text-foreground"
               >
-                <X className="w-3 h-3" />
+                <X className="w-2.5 h-2.5" />
               </button>
-            </Badge>
+            </span>
           ))}
         </div>
       )}
 
-      {/* Dropdown trigger */}
       <div className="relative">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "w-full flex items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors hover:bg-secondary/50",
-            isOpen && "ring-1 ring-ring"
+            "w-full flex items-center justify-between rounded-md border border-border/50 bg-transparent px-3 py-2 text-xs transition-colors hover:border-border",
+            isOpen && "border-primary/30"
           )}
         >
           <span className="text-muted-foreground">
             {selectedIds.length === 0
-              ? "Click to select tags..."
-              : `${selectedIds.length} tag${selectedIds.length > 1 ? "s" : ""} selected`}
+              ? "Select tags..."
+              : `${selectedIds.length} selected`}
           </span>
           <ChevronDown
             className={cn(
-              "w-4 h-4 text-muted-foreground transition-transform",
+              "w-3.5 h-3.5 text-muted-foreground transition-transform",
               isOpen && "rotate-180"
             )}
           />
         </button>
 
-        {/* Dropdown panel */}
         {isOpen && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-card shadow-lg">
-            <div className="p-2 border-b border-border">
+          <div className="absolute z-50 mt-1 w-full rounded-md border border-border/50 bg-popover shadow-lg">
+            <div className="p-2 border-b border-border/50">
               <input
                 type="text"
                 placeholder={placeholder}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent text-sm px-2 py-1 outline-none placeholder:text-muted-foreground"
+                className="w-full bg-transparent text-xs px-1 py-0.5 outline-none placeholder:text-muted-foreground"
                 autoFocus
               />
             </div>
-            <div className="max-h-48 overflow-y-auto p-1">
+            <div className="max-h-40 overflow-y-auto p-1">
               {filteredTags.length === 0 ? (
-                <p className="text-sm text-muted-foreground p-2 text-center">
+                <p className="text-xs text-muted-foreground p-2 text-center">
                   No tags found
                 </p>
               ) : (
@@ -125,14 +120,14 @@ export function TagSelector({
                       type="button"
                       onClick={() => toggleTag(tag.id)}
                       className={cn(
-                        "w-full flex items-center justify-between px-2 py-1.5 text-sm rounded-md transition-colors",
+                        "w-full flex items-center justify-between px-2 py-1 text-xs rounded transition-colors",
                         isSelected
-                          ? "bg-primary/10 text-primary"
-                          : "hover:bg-secondary"
+                          ? "text-primary"
+                          : "text-foreground hover:bg-secondary"
                       )}
                     >
                       <span>{tag.name}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground tabular-nums">
                         {tag.member_count}
                       </span>
                     </button>
@@ -144,7 +139,6 @@ export function TagSelector({
         )}
       </div>
 
-      {/* Click outside to close */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40"

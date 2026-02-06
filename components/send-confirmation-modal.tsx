@@ -9,9 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Send } from "lucide-react";
+import { Send } from "lucide-react";
 
 interface SendConfirmationModalProps {
   open: boolean;
@@ -38,83 +36,59 @@ export function SendConfirmationModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-primary" />
-            Confirm SMS Send
-          </DialogTitle>
+          <DialogTitle>Confirm Send</DialogTitle>
           <DialogDescription>
-            Please review the details below before sending. This action cannot be
-            undone.
+            This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 my-4">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-              Sending To
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {associations.map((a) => (
-                <Badge key={a} variant="secondary">
-                  {a}
-                </Badge>
-              ))}
-            </div>
+        <div className="space-y-4 my-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">To</span>
+            <span className="font-medium">{associations.join(", ")}</span>
           </div>
 
           {exclusions.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-                Excluding
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {exclusions.map((e) => (
-                  <Badge key={e} variant="outline">
-                    {e}
-                  </Badge>
-                ))}
-              </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Excluding</span>
+              <span className="text-muted-foreground">
+                {exclusions.join(", ")}
+              </span>
             </div>
           )}
 
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-              Estimated Recipients
-            </p>
-            <p className="text-xl font-bold">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Recipients</span>
+            <span className="font-semibold tabular-nums">
               {recipientCount !== null ? recipientCount.toLocaleString() : "—"}
-            </p>
+            </span>
           </div>
 
-          <Separator />
+          <div className="h-px bg-border/50" />
 
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-              Message Preview
+          <div className="rounded-lg bg-secondary/30 p-3">
+            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+              {message}
             </p>
-            <div className="bg-secondary/50 rounded-lg p-3 border border-border">
-              <p className="text-sm whitespace-pre-wrap break-words">
-                {message}
-              </p>
-            </div>
           </div>
         </div>
 
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={sending}
+            className="text-muted-foreground"
           >
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={sending}>
+          <Button onClick={onConfirm} disabled={sending} size="sm">
             {sending ? (
               "Sending..."
             ) : (
               <>
-                <Send className="w-4 h-4 mr-1" />
-                Send SMS Now
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                Send Now
               </>
             )}
           </Button>

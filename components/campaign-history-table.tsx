@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableHeader,
@@ -29,19 +28,22 @@ interface CampaignHistoryTableProps {
   loading?: boolean;
 }
 
-function getStatusColor(status: string) {
-  switch (status) {
-    case "sent":
-      return "bg-green-500/10 text-green-400 border-green-500/20";
-    case "sending":
-      return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-    case "schedule":
-      return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-    case "paused":
-      return "bg-orange-500/10 text-orange-400 border-orange-500/20";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
+function StatusDot({ status }: { status: string }) {
+  const color =
+    status === "sent"
+      ? "bg-emerald-400"
+      : status === "sending"
+        ? "bg-blue-400"
+        : status === "schedule"
+          ? "bg-amber-400"
+          : "bg-muted-foreground";
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs">
+      <span className={`w-1.5 h-1.5 rounded-full ${color}`} />
+      {status}
+    </span>
+  );
 }
 
 export function CampaignHistoryTable({
@@ -50,11 +52,11 @@ export function CampaignHistoryTable({
 }: CampaignHistoryTableProps) {
   if (loading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="h-16 bg-secondary/30 rounded-lg animate-pulse"
+            className="h-10 bg-secondary/30 rounded animate-pulse"
           />
         ))}
       </div>
@@ -63,11 +65,8 @@ export function CampaignHistoryTable({
 
   if (campaigns.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p className="text-lg font-medium">No campaigns yet</p>
-        <p className="text-sm mt-1">
-          Campaigns you send will appear here
-        </p>
+      <div className="text-center py-16 text-muted-foreground">
+        <p className="text-sm">No campaigns yet</p>
       </div>
     );
   }
@@ -75,38 +74,37 @@ export function CampaignHistoryTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Title</TableHead>
-          <TableHead>Subject</TableHead>
-          <TableHead className="text-right">Recipients</TableHead>
-          <TableHead>Status</TableHead>
+        <TableRow className="border-border/50 hover:bg-transparent">
+          <TableHead className="text-[11px] uppercase tracking-wider font-medium">
+            Date
+          </TableHead>
+          <TableHead className="text-[11px] uppercase tracking-wider font-medium">
+            Title
+          </TableHead>
+          <TableHead className="text-[11px] uppercase tracking-wider font-medium text-right">
+            Recipients
+          </TableHead>
+          <TableHead className="text-[11px] uppercase tracking-wider font-medium">
+            Status
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {campaigns.map((campaign) => (
-          <TableRow key={campaign.id}>
-            <TableCell className="font-mono text-xs whitespace-nowrap">
+          <TableRow key={campaign.id} className="border-border/30">
+            <TableCell className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
               {campaign.send_time
-                ? new Date(campaign.send_time).toLocaleString()
+                ? new Date(campaign.send_time).toLocaleDateString()
                 : "—"}
             </TableCell>
-            <TableCell className="font-medium max-w-[200px] truncate">
+            <TableCell className="text-sm max-w-[300px] truncate">
               {campaign.settings.title || "Untitled"}
             </TableCell>
-            <TableCell className="max-w-[300px] truncate text-muted-foreground">
-              {campaign.settings.subject_line || "—"}
-            </TableCell>
-            <TableCell className="text-right tabular-nums">
+            <TableCell className="text-right text-sm tabular-nums">
               {campaign.recipients.recipient_count?.toLocaleString() || "—"}
             </TableCell>
             <TableCell>
-              <Badge
-                variant="outline"
-                className={getStatusColor(campaign.status)}
-              >
-                {campaign.status}
-              </Badge>
+              <StatusDot status={campaign.status} />
             </TableCell>
           </TableRow>
         ))}

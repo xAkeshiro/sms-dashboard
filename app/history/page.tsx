@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { Nav } from "@/components/nav";
 import { CampaignHistoryTable } from "@/components/campaign-history-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
 interface Campaign {
@@ -48,43 +46,25 @@ export default function HistoryPage() {
   return (
     <>
       <Nav />
-      <main className="pt-20 pb-12 px-4 sm:px-6 max-w-7xl mx-auto">
+      <main className="pt-20 pb-12 px-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Campaign History
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              View past SMS campaigns and their status
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
+          <h1 className="text-lg font-semibold">History</h1>
+          <button
             onClick={loadHistory}
             disabled={loading}
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <RefreshCw
-              className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          </button>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+          <div className="mb-6 py-3 px-4 rounded-lg border border-destructive/20 text-destructive text-xs">
             {error}
           </div>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Campaigns</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CampaignHistoryTable campaigns={campaigns} loading={loading} />
-          </CardContent>
-        </Card>
+        <CampaignHistoryTable campaigns={campaigns} loading={loading} />
       </main>
     </>
   );

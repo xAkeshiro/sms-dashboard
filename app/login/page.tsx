@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Lock, MessageSquare } from "lucide-react";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -40,54 +38,39 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        {/* Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-            <MessageSquare className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">SMS Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Association Management Portal
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-xs space-y-8">
+        <div>
+          <h1 className="text-sm font-semibold">
+            SMS<span className="text-primary">.</span>
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Enter password to continue
           </p>
         </div>
 
-        <Card className="border-border/50">
-          <CardHeader className="text-center">
-            <CardTitle className="text-lg">Admin Login</CardTitle>
-            <CardDescription>
-              Enter the admin password to continue
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="password"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-11 bg-secondary/50"
-                  autoFocus
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-10 bg-secondary/30 border-border/50 text-sm"
+            autoFocus
+          />
 
-              {error && (
-                <p className="text-sm text-destructive text-center">{error}</p>
-              )}
+          {error && (
+            <p className="text-xs text-destructive">{error}</p>
+          )}
 
-              <Button
-                type="submit"
-                className="w-full h-11 font-semibold"
-                disabled={loading || !password}
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          <Button
+            type="submit"
+            className="w-full h-10 text-sm"
+            disabled={loading || !password}
+          >
+            {loading ? "..." : "Sign In"}
+          </Button>
+        </form>
       </div>
     </div>
   );

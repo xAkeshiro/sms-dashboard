@@ -1,8 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Users, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 interface AssociationCardProps {
   id: string;
@@ -24,7 +23,6 @@ export function AssociationCard({
   name,
   accent,
   memberCount,
-  lastSmsDate,
   selected = false,
   selectable = false,
   onSelect,
@@ -41,95 +39,69 @@ export function AssociationCard({
     <div
       onClick={handleClick}
       className={cn(
-        "relative rounded-xl border transition-all duration-200",
+        "group relative rounded-lg border transition-all duration-150",
         selectable && "cursor-pointer",
         selected
-          ? "border-2 shadow-lg"
-          : "border-border hover:border-border/80",
-        !selected && selectable && "hover:shadow-md",
+          ? "border-border bg-secondary/50"
+          : "border-border/40 hover:border-border",
         compact ? "p-4" : "p-5"
       )}
-      style={{
-        borderColor: selected ? accent : undefined,
-        boxShadow: selected ? `0 0 20px ${accent}20` : undefined,
-      }}
     >
-      {/* Accent bar at top */}
-      <div
-        className="absolute top-0 left-4 right-4 h-0.5 rounded-b-full"
-        style={{ backgroundColor: accent }}
-      />
-
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="text-xs font-bold px-2 py-0.5 rounded-md"
-              style={{
-                backgroundColor: `${accent}20`,
-                color: accent,
-              }}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={cn(
+              "w-2 h-2 rounded-full shrink-0",
+              selected && "ring-4 ring-current/10"
+            )}
+            style={{ backgroundColor: accent, color: accent }}
+          />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                {tag}
+              </span>
+              {selected && (
+                <span className="text-[10px] text-primary font-medium">
+                  Selected
+                </span>
+              )}
+            </div>
+            <h3
+              className={cn(
+                "font-medium leading-tight truncate",
+                compact ? "text-sm" : "text-sm"
+              )}
             >
-              {tag}
-            </span>
-            {selected && (
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
-                style={{ backgroundColor: accent, color: "#0f1219" }}
-              >
-                ✓
-              </div>
+              {name}
+            </h3>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <p className="text-lg font-semibold tabular-nums leading-none">
+              {memberCount !== undefined ? memberCount.toLocaleString() : "—"}
+            </p>
+            {!compact && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                members
+              </p>
             )}
           </div>
 
-          <h3
-            className={cn(
-              "font-semibold leading-tight",
-              compact ? "text-sm" : "text-base"
-            )}
-          >
-            {name}
-          </h3>
-
-          {!compact && (
-            <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
-                <span>
-                  {memberCount !== undefined ? memberCount.toLocaleString() : "—"}{" "}
-                  members
-                </span>
-              </div>
-              {lastSmsDate && (
-                <div className="text-xs">
-                  Last SMS: {new Date(lastSmsDate).toLocaleDateString()}
-                </div>
-              )}
-            </div>
-          )}
-
-          {compact && memberCount !== undefined && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {memberCount.toLocaleString()} members
-            </p>
+          {onSendSms && !compact && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSendSms(id);
+              }}
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </button>
           )}
         </div>
-
-        {onSendSms && !compact && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSendSms(id);
-            }}
-            className="shrink-0"
-            style={{ borderColor: `${accent}40`, color: accent }}
-          >
-            <Send className="w-3.5 h-3.5 mr-1" />
-            Send SMS
-          </Button>
-        )}
       </div>
     </div>
   );
