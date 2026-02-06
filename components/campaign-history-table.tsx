@@ -39,8 +39,8 @@ function StatusDot({ status }: { status: string }) {
           : "bg-muted-foreground";
 
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs">
-      <span className={`w-1.5 h-1.5 rounded-full ${color}`} />
+    <span className="inline-flex items-center gap-2 text-xs capitalize">
+      <span className={`w-2 h-2 rounded-full ${color}`} />
       {status}
     </span>
   );
@@ -56,7 +56,7 @@ export function CampaignHistoryTable({
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="h-10 bg-secondary/30 rounded animate-pulse"
+            className="h-12 rounded-lg animate-shimmer"
           />
         ))}
       </div>

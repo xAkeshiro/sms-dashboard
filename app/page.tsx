@@ -54,27 +54,27 @@ export default function DashboardPage() {
     <>
       <Nav />
       <main className="pt-20 pb-12 px-6 max-w-6xl mx-auto">
-        <div className="flex items-baseline justify-between mb-10">
+        <div className="flex items-end justify-between mb-10">
           <div>
-            <h1 className="text-lg font-semibold">Dashboard</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <h1 className="text-xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Association SMS management
             </p>
           </div>
-          <div className="flex items-baseline gap-6 text-right">
-            <div>
-              <p className="text-2xl font-semibold tabular-nums">
+          <div className="flex gap-3">
+            <div className="rounded-xl bg-card border border-border/30 px-5 py-3 text-right">
+              <p className="text-2xl font-bold tabular-nums leading-none">
                 {loading ? "..." : totalContacts.toLocaleString()}
               </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
                 Total contacts
               </p>
             </div>
-            <div>
-              <p className="text-2xl font-semibold tabular-nums">
+            <div className="rounded-xl bg-card border border-border/30 px-5 py-3 text-right">
+              <p className="text-2xl font-bold tabular-nums leading-none">
                 {loading ? "..." : tags.length}
               </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
                 Tags
               </p>
             </div>
@@ -94,16 +94,16 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid md:grid-cols-2 gap-2">
+          <div className="grid md:grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[72px] bg-secondary/20 rounded-lg animate-pulse"
+                className="h-[80px] rounded-xl animate-shimmer"
               />
             ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-2">
+          <div className="grid md:grid-cols-2 gap-3">
             {ASSOCIATIONS.map((association) => (
               <AssociationCard
                 key={association.id}

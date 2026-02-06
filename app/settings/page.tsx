@@ -47,7 +47,7 @@ export default function SettingsPage() {
       <Nav />
       <main className="pt-20 pb-12 px-6 max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-10">
-          <h1 className="text-lg font-semibold">Settings</h1>
+          <h1 className="text-xl font-bold tracking-tight">Settings</h1>
           <button
             onClick={loadTags}
             disabled={loading}
@@ -62,28 +62,30 @@ export default function SettingsPage() {
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
             Connection
           </p>
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
+          <div className="rounded-xl bg-card border border-border/30 p-4 flex items-center gap-3">
+            <div
+              className={`w-2.5 h-2.5 rounded-full ${
                 apiConnected === null
                   ? "bg-muted-foreground animate-pulse"
                   : apiConnected
-                    ? "bg-emerald-400"
-                    : "bg-destructive"
+                    ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]"
+                    : "bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.4)]"
               }`}
             />
-            <span className="text-sm">
-              {apiConnected === null
-                ? "Checking..."
-                : apiConnected
-                  ? "Mailchimp connected"
-                  : "Disconnected"}
-            </span>
-            {apiConnected && (
-              <span className="text-xs text-muted-foreground ml-1">
-                &middot; {tags.length} tags
+            <div>
+              <span className="text-sm font-medium">
+                {apiConnected === null
+                  ? "Checking..."
+                  : apiConnected
+                    ? "Mailchimp connected"
+                    : "Disconnected"}
               </span>
-            )}
+              {apiConnected && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  {tags.length} tags synced
+                </span>
+              )}
+            </div>
           </div>
           {error && (
             <p className="text-xs text-destructive mt-2">{error}</p>
@@ -98,11 +100,11 @@ export default function SettingsPage() {
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-10 bg-secondary/20 rounded animate-pulse" />
+                <div key={i} className="h-12 rounded-xl animate-shimmer" />
               ))}
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="rounded-xl bg-card border border-border/30 divide-y divide-border/20 overflow-hidden">
               {ASSOCIATIONS.map((assoc) => {
                 const tag = tags.find(
                   (t) => t.name.toUpperCase() === assoc.tag.toUpperCase()
@@ -110,19 +112,19 @@ export default function SettingsPage() {
                 return (
                   <div
                     key={assoc.id}
-                    className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-0"
+                    className="flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3">
                       <span
-                        className="w-1.5 h-1.5 rounded-full"
+                        className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: assoc.accent }}
                       />
-                      <span className="text-sm">{assoc.tag}</span>
+                      <span className="text-sm font-medium">{assoc.tag}</span>
                       <span className="text-xs text-muted-foreground">
                         {assoc.name}
                       </span>
                     </div>
-                    <span className="text-sm font-medium tabular-nums">
+                    <span className="text-sm font-semibold tabular-nums">
                       {tag ? tag.member_count.toLocaleString() : "—"}
                     </span>
                   </div>
@@ -138,15 +140,15 @@ export default function SettingsPage() {
             Other Tags ({otherTags.length})
           </p>
           {loading ? (
-            <div className="h-12 bg-secondary/20 rounded animate-pulse" />
+            <div className="h-12 rounded-xl animate-shimmer" />
           ) : otherTags.length === 0 ? (
             <p className="text-xs text-muted-foreground">None</p>
           ) : (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {otherTags.map((tag) => (
                 <span
                   key={tag.id}
-                  className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded"
+                  className="text-xs text-muted-foreground bg-card border border-border/30 px-2.5 py-1 rounded-lg"
                 >
                   {tag.name} ({tag.member_count})
                 </span>

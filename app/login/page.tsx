@@ -38,24 +38,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-xs space-y-8">
-        <div>
-          <h1 className="text-sm font-semibold">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Ambient glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/[0.04] rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="relative w-full max-w-xs space-y-8">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">
             SMS<span className="text-primary">.</span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Enter password to continue
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-10 bg-secondary/30 border-border/50 text-sm"
+            className="h-11 bg-card border-border/50 text-sm rounded-lg focus:border-primary/40"
             autoFocus
           />
 
@@ -65,7 +68,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full h-10 text-sm"
+            className="w-full h-11 text-sm rounded-lg font-medium"
             disabled={loading || !password}
           >
             {loading ? "..." : "Sign In"}

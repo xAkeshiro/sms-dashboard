@@ -48,7 +48,7 @@ export default function HistoryPage() {
       <Nav />
       <main className="pt-20 pb-12 px-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-lg font-semibold">History</h1>
+          <h1 className="text-xl font-bold tracking-tight">History</h1>
           <button
             onClick={loadHistory}
             disabled={loading}

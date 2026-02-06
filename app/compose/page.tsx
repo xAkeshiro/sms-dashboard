@@ -171,16 +171,20 @@ function ComposeContent() {
       <>
         <Nav />
         <main className="pt-20 pb-12 px-6 max-w-2xl mx-auto">
-          <div className="mt-16 text-center">
-            {sendResult.success ? (
-              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-4" />
-            ) : (
-              <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
-            )}
-            <h2 className="text-sm font-semibold mb-1">
-              {sendResult.success ? "Sent" : "Failed"}
+          <div className="mt-16 text-center animate-slide-up">
+            <div className={`w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center ${
+              sendResult.success ? "bg-emerald-400/10" : "bg-destructive/10"
+            }`}>
+              {sendResult.success ? (
+                <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+              ) : (
+                <AlertCircle className="w-7 h-7 text-destructive" />
+              )}
+            </div>
+            <h2 className="text-base font-semibold mb-1">
+              {sendResult.success ? "Message Sent" : "Send Failed"}
             </h2>
-            <p className="text-xs text-muted-foreground mb-8">
+            <p className="text-sm text-muted-foreground mb-8">
               {sendResult.message}
             </p>
             <div className="flex gap-2 justify-center">
@@ -212,7 +216,7 @@ function ComposeContent() {
       <Nav />
       <main className="pt-20 pb-12 px-6 max-w-3xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-lg font-semibold">Compose</h1>
+          <h1 className="text-xl font-bold tracking-tight">Compose</h1>
         </div>
 
         {/* Stepper */}
@@ -222,21 +226,21 @@ function ComposeContent() {
               <button
                 type="button"
                 onClick={() => s.n <= step && setStep(s.n)}
-                className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                className={`flex items-center gap-2 text-xs font-medium transition-all duration-200 ${
                   step === s.n
                     ? "text-primary"
                     : step > s.n
                       ? "text-foreground"
-                      : "text-muted-foreground/50"
+                      : "text-muted-foreground/40"
                 }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-semibold border ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold transition-all duration-200 ${
                     step === s.n
-                      ? "border-primary text-primary"
+                      ? "bg-primary/15 text-primary border border-primary/30"
                       : step > s.n
-                        ? "border-foreground/20 text-foreground"
-                        : "border-border text-muted-foreground/50"
+                        ? "bg-secondary text-foreground border border-border/50"
+                        : "border border-border/30 text-muted-foreground/40"
                   }`}
                 >
                   {step > s.n ? "✓" : s.n}
@@ -244,7 +248,9 @@ function ComposeContent() {
                 <span className="hidden sm:block">{s.label}</span>
               </button>
               {i < steps.length - 1 && (
-                <div className="w-8 h-px bg-border/50 mx-2" />
+                <div className={`w-8 h-px mx-2 transition-colors ${
+                  step > s.n ? "bg-border" : "bg-border/30"
+                }`} />
               )}
             </div>
           ))}
@@ -256,7 +262,7 @@ function ComposeContent() {
             <p className="text-xs text-muted-foreground">
               Select one or more associations.
             </p>
-            <div className="grid sm:grid-cols-2 gap-2">
+            <div className="grid sm:grid-cols-2 gap-3">
               {ASSOCIATIONS.map((assoc) => (
                 <AssociationCard
                   key={assoc.id}
@@ -344,38 +350,37 @@ function ComposeContent() {
 
         {/* Step 4 */}
         {step === 4 && (
-          <div className="space-y-6">
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
+          <div className="space-y-6 animate-slide-up">
+            <div className="rounded-xl bg-card border border-border/30 p-5 space-y-3">
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">To</span>
                 <span className="font-medium">{getSelectedNames().join(", ")}</span>
               </div>
               {getExcludedNames().length > 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Excluding</span>
                   <span className="text-muted-foreground">{getExcludedNames().join(", ")}</span>
                 </div>
               )}
-              <div className="flex justify-between">
+              <div className="h-px bg-border/20" />
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Recipients</span>
-                <span className="font-semibold tabular-nums">
+                <span className="font-semibold tabular-nums text-primary">
                   {recipientCount !== null ? recipientCount.toLocaleString() : "—"}
                 </span>
               </div>
             </div>
 
-            <div className="h-px bg-border/30" />
-
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
                 Message
               </p>
-              <div className="rounded-lg bg-secondary/30 p-4">
+              <div className="rounded-xl bg-card border border-border/30 p-5">
                 <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
                   {message}
                 </p>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5">
+              <p className="text-[11px] text-muted-foreground mt-2">
                 {message.length} chars &middot; {Math.ceil(message.length / 160) || 1} segment(s)
               </p>
             </div>

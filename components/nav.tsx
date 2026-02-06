@@ -29,17 +29,17 @@ export function Nav() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-40 bg-background/70 backdrop-blur-xl border-b border-border/40">
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-between h-14">
           <Link
             href="/"
-            className="text-sm font-semibold tracking-tight text-foreground"
+            className="text-base font-bold tracking-tight text-foreground"
           >
             SMS<span className="text-primary">.</span>
           </Link>
 
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
@@ -49,10 +49,10 @@ export function Nav() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                    "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
                     isActive
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "text-primary bg-primary/[0.08]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
                   )}
                 >
                   <item.icon className="w-3.5 h-3.5" />
@@ -61,9 +61,11 @@ export function Nav() {
               );
             })}
 
+            <div className="w-px h-4 bg-border/50 mx-1.5" />
+
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors ml-2"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-200"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>

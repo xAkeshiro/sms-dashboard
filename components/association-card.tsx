@@ -39,26 +39,31 @@ export function AssociationCard({
     <div
       onClick={handleClick}
       className={cn(
-        "group relative rounded-lg border transition-all duration-150",
+        "group relative rounded-xl border transition-all duration-200",
         selectable && "cursor-pointer",
         selected
-          ? "border-border bg-secondary/50"
-          : "border-border/40 hover:border-border",
+          ? "border-border bg-card shadow-sm"
+          : "border-border/30 bg-card/50 hover:bg-card hover:border-border/60 hover:shadow-sm",
         compact ? "p-4" : "p-5"
       )}
+      style={{
+        boxShadow: selected
+          ? `0 0 20px ${accent}08, 0 1px 3px rgba(0,0,0,0.2)`
+          : undefined,
+      }}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={cn(
-              "w-2 h-2 rounded-full shrink-0",
-              selected && "ring-4 ring-current/10"
+              "w-2.5 h-2.5 rounded-full shrink-0 transition-shadow duration-200",
+              selected ? "shadow-[0_0_8px_currentColor]" : "group-hover:shadow-[0_0_6px_currentColor]"
             )}
             style={{ backgroundColor: accent, color: accent }}
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
                 {tag}
               </span>
               {selected && (
@@ -67,12 +72,7 @@ export function AssociationCard({
                 </span>
               )}
             </div>
-            <h3
-              className={cn(
-                "font-medium leading-tight truncate",
-                compact ? "text-sm" : "text-sm"
-              )}
-            >
+            <h3 className="text-sm font-medium leading-tight truncate mt-0.5">
               {name}
             </h3>
           </div>
@@ -96,7 +96,7 @@ export function AssociationCard({
                 e.stopPropagation();
                 onSendSms(id);
               }}
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="text-muted-foreground hover:text-primary transition-all duration-200 hover:translate-x-0.5"
             >
               <ArrowRight className="w-4 h-4" />
             </button>

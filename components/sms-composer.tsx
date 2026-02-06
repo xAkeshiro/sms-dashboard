@@ -25,7 +25,7 @@ export function SmsComposer({ message, onMessageChange }: SmsComposerProps) {
         value={message}
         onChange={(e) => onMessageChange(e.target.value)}
         rows={5}
-        className="resize-none text-sm leading-relaxed bg-secondary/30 border-border/50 focus:border-primary/30"
+        className="resize-none text-sm leading-relaxed bg-card border-border/40 rounded-xl focus:border-primary/40"
       />
 
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
@@ -36,9 +36,9 @@ export function SmsComposer({ message, onMessageChange }: SmsComposerProps) {
         <span>{SMS_CHAR_LIMIT - charsInCurrentSegment} remaining</span>
       </div>
 
-      <div className="h-px bg-border/50 relative">
+      <div className="h-1 bg-secondary rounded-full relative overflow-hidden">
         <div
-          className="h-px bg-primary transition-all duration-200 absolute inset-y-0 left-0"
+          className="h-full bg-primary/80 rounded-full transition-all duration-300 ease-out"
           style={{
             width: `${(charsInCurrentSegment / SMS_CHAR_LIMIT) * 100}%`,
           }}
@@ -54,7 +54,7 @@ export function SmsComposer({ message, onMessageChange }: SmsComposerProps) {
             key={field.value}
             type="button"
             onClick={() => insertMergeField(field.value)}
-            className="text-[11px] text-muted-foreground hover:text-primary px-1.5 py-0.5 rounded border border-border/50 hover:border-primary/30 transition-colors"
+            className="text-[11px] text-muted-foreground hover:text-primary px-2 py-1 rounded-md bg-secondary/50 hover:bg-primary/10 border border-border/30 hover:border-primary/20 transition-all duration-200"
           >
             {field.label}
           </button>
@@ -66,7 +66,7 @@ export function SmsComposer({ message, onMessageChange }: SmsComposerProps) {
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
             Preview
           </p>
-          <div className="rounded-lg bg-secondary/30 p-4">
+          <div className="rounded-xl bg-card border border-border/30 p-4">
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
               {message}
             </p>

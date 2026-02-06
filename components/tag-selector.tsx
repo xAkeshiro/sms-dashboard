@@ -57,7 +57,7 @@ export function TagSelector({
           {selectedTags.map((tag) => (
             <span
               key={tag.id}
-              className="inline-flex items-center gap-1 text-xs bg-secondary px-2 py-0.5 rounded"
+              className="inline-flex items-center gap-1.5 text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-lg"
             >
               {tag.name}
               <button
@@ -77,8 +77,8 @@ export function TagSelector({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "w-full flex items-center justify-between rounded-md border border-border/50 bg-transparent px-3 py-2 text-xs transition-colors hover:border-border",
-            isOpen && "border-primary/30"
+            "w-full flex items-center justify-between rounded-lg border border-border/40 bg-card px-3 py-2.5 text-xs transition-all duration-200 hover:border-border/60",
+            isOpen && "border-primary/30 shadow-sm"
           )}
         >
           <span className="text-muted-foreground">
@@ -95,8 +95,8 @@ export function TagSelector({
         </button>
 
         {isOpen && (
-          <div className="absolute z-50 mt-1 w-full rounded-md border border-border/50 bg-popover shadow-lg">
-            <div className="p-2 border-b border-border/50">
+          <div className="absolute z-50 mt-1.5 w-full rounded-xl border border-border/40 bg-popover shadow-xl shadow-black/20 overflow-hidden">
+            <div className="p-2.5 border-b border-border/30">
               <input
                 type="text"
                 placeholder={placeholder}

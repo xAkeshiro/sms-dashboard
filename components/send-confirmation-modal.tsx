@@ -42,31 +42,33 @@ export function SendConfirmationModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 my-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">To</span>
-            <span className="font-medium">{associations.join(", ")}</span>
-          </div>
-
-          {exclusions.length > 0 && (
+        <div className="space-y-4 my-3 text-sm">
+          <div className="rounded-xl bg-secondary/30 border border-border/20 p-4 space-y-2.5">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Excluding</span>
-              <span className="text-muted-foreground">
-                {exclusions.join(", ")}
+              <span className="text-muted-foreground">To</span>
+              <span className="font-medium">{associations.join(", ")}</span>
+            </div>
+
+            {exclusions.length > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Excluding</span>
+                <span className="text-muted-foreground">
+                  {exclusions.join(", ")}
+                </span>
+              </div>
+            )}
+
+            <div className="h-px bg-border/20" />
+
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Recipients</span>
+              <span className="font-bold tabular-nums text-primary">
+                {recipientCount !== null ? recipientCount.toLocaleString() : "—"}
               </span>
             </div>
-          )}
-
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Recipients</span>
-            <span className="font-semibold tabular-nums">
-              {recipientCount !== null ? recipientCount.toLocaleString() : "—"}
-            </span>
           </div>
 
-          <div className="h-px bg-border/50" />
-
-          <div className="rounded-lg bg-secondary/30 p-3">
+          <div className="rounded-xl bg-card border border-border/30 p-4">
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
               {message}
             </p>
