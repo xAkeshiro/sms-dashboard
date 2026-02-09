@@ -36,7 +36,7 @@ export function Nav() {
             href="/"
             className="text-base font-bold tracking-tight text-foreground"
           >
-            SMS<span className="text-primary">.</span>
+            RAS<span className="text-primary"> International</span>
           </Link>
 
           <div className="flex items-center gap-1">

@@ -58,7 +58,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Association SMS management
+              Manage association communications
             </p>
           </div>
           <div className="flex gap-3">

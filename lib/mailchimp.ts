@@ -1,9 +1,25 @@
 import mailchimp from "@mailchimp/mailchimp_marketing";
+import {
+  getMockTags,
+  getMockSegmentCount,
+  sendMockCampaign,
+  getMockCampaignHistory,
+  getMockCampaignById,
+} from "./mock-data";
+import type { MailchimpCampaign } from "./types";
 
 let initialized = false;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MailchimpClient = any;
+
+function isConfigured(): boolean {
+  return !!(
+    process.env.MAILCHIMP_API_KEY &&
+    process.env.MAILCHIMP_SERVER_PREFIX &&
+    process.env.MAILCHIMP_AUDIENCE_ID
+  );
+}
 
 function getClient(): MailchimpClient {
   if (!initialized) {
@@ -34,29 +50,18 @@ export interface MailchimpSegment {
   member_count: number;
 }
 
-export interface MailchimpCampaign {
-  id: string;
-  type: string;
-  status: string;
-  send_time: string | null;
-  settings: {
-    subject_line: string;
-    title: string;
-  };
-  recipients: {
-    list_id: string;
-    segment_text: string;
-    recipient_count: number;
-  };
-  content_type?: string;
-}
+export type { MailchimpCampaign };
 
-// Tag cache to avoid repeated API calls
+// Tag cache
 let tagCache: MailchimpTag[] | null = null;
 let tagCacheTime = 0;
-const TAG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const TAG_CACHE_TTL = 5 * 60 * 1000;
 
 export async function fetchAllTags(): Promise<MailchimpTag[]> {
+  if (!isConfigured()) {
+    return getMockTags();
+  }
+
   const now = Date.now();
   if (tagCache && now - tagCacheTime < TAG_CACHE_TTL) {
     return tagCache;
@@ -65,7 +70,6 @@ export async function fetchAllTags(): Promise<MailchimpTag[]> {
   const client = getClient();
   const audienceId = getAudienceId();
 
-  // Use listSegments to get static segments (tags) with type=static and count up to 1000
   const response = (await client.lists.listSegments(audienceId, {
     type: "static",
     count: 1000,
@@ -92,12 +96,16 @@ export async function createSegment(
   includeTags: number[],
   excludeTags: number[]
 ): Promise<MailchimpSegment> {
+  if (!isConfigured()) {
+    const count = getMockSegmentCount(includeTags, excludeTags);
+    return { id: Date.now(), name, member_count: count };
+  }
+
   const client = getClient();
   const audienceId = getAudienceId();
 
   const conditions: Record<string, unknown>[] = [];
 
-  // Include conditions - use "any" match if multiple associations
   for (const tagId of includeTags) {
     conditions.push({
       condition_type: "StaticSegment",
@@ -107,7 +115,6 @@ export async function createSegment(
     });
   }
 
-  // Exclude conditions
   for (const tagId of excludeTags) {
     conditions.push({
       condition_type: "StaticSegment",
@@ -136,7 +143,10 @@ export async function previewSegmentCount(
   includeTags: number[],
   excludeTags: number[]
 ): Promise<number> {
-  // Create a temporary segment to get the count
+  if (!isConfigured()) {
+    return getMockSegmentCount(includeTags, excludeTags);
+  }
+
   const timestamp = Date.now();
   const segment = await createSegment(
     `_preview_${timestamp}`,
@@ -146,7 +156,6 @@ export async function previewSegmentCount(
 
   const count = segment.member_count;
 
-  // Delete the preview segment
   try {
     const client = getClient();
     const audienceId = getAudienceId();
@@ -159,20 +168,35 @@ export async function previewSegmentCount(
 }
 
 export async function createAndSendSmsCampaign(
-  segmentId: number,
+  _segmentId: number,
   message: string,
-  title: string
-): Promise<{ campaignId: string; status: string }> {
+  title: string,
+  includeTags?: number[],
+  excludeTags?: number[]
+): Promise<{ campaignId: string; status: string; recipientCount?: number }> {
+  if (!isConfigured()) {
+    const result = sendMockCampaign(
+      message,
+      title,
+      includeTags || [],
+      excludeTags || []
+    );
+    return {
+      campaignId: result.campaignId,
+      status: "sent",
+      recipientCount: result.recipientCount,
+    };
+  }
+
   const client = getClient();
   const audienceId = getAudienceId();
 
-  // Create campaign
   const campaign = (await client.campaigns.create({
     type: "plaintext",
     recipients: {
       list_id: audienceId,
       segment_opts: {
-        saved_segment_id: segmentId,
+        saved_segment_id: _segmentId,
       },
     },
     settings: {
@@ -183,12 +207,10 @@ export async function createAndSendSmsCampaign(
     },
   })) as { id: string };
 
-  // Set campaign content
   await client.campaigns.setContent(campaign.id, {
     plain_text: message,
   });
 
-  // Send campaign
   await client.campaigns.send(campaign.id);
 
   return { campaignId: campaign.id, status: "sent" };
@@ -197,6 +219,10 @@ export async function createAndSendSmsCampaign(
 export async function fetchCampaignHistory(
   count: number = 20
 ): Promise<MailchimpCampaign[]> {
+  if (!isConfigured()) {
+    return getMockCampaignHistory().slice(0, count) as MailchimpCampaign[];
+  }
+
   const client = getClient();
   const audienceId = getAudienceId();
 
@@ -210,7 +236,28 @@ export async function fetchCampaignHistory(
   return response.campaigns || [];
 }
 
+export async function fetchCampaignById(
+  id: string
+): Promise<MailchimpCampaign | null> {
+  if (!isConfigured()) {
+    const mock = getMockCampaignById(id);
+    return mock ? (mock as MailchimpCampaign) : null;
+  }
+
+  try {
+    const client = getClient();
+    const campaign = (await client.campaigns.get(id)) as MailchimpCampaign;
+    return campaign;
+  } catch {
+    return null;
+  }
+}
+
 export async function pingMailchimp(): Promise<boolean> {
+  if (!isConfigured()) {
+    return true;
+  }
+
   try {
     const client = getClient();
     await client.ping.get();

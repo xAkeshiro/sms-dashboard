@@ -44,11 +44,11 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-xs space-y-8">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">
-            SMS<span className="text-primary">.</span>
+          <h1 className="text-xl font-bold tracking-tight">
+            RAS<span className="text-primary"> International</span>
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Enter password to continue
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider mt-2">
+            SMS Tool
           </p>
         </div>
 

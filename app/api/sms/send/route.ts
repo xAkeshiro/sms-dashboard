@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
     const result = await createAndSendSmsCampaign(
       segment.id,
       message,
-      campaignTitle
+      campaignTitle,
+      includeTags,
+      excludeTags || []
     );
 
     console.log(
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
       success: true,
       campaignId: result.campaignId,
       status: result.status,
-      recipientCount: segment.member_count,
+      recipientCount: result.recipientCount || segment.member_count,
     });
   } catch (error) {
     console.error("[SMS SEND] Failed:", error);

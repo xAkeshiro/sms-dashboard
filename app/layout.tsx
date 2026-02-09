@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SMS Dashboard — Association Management",
+  title: "RAS International — SMS Tool",
   description:
-    "Admin dashboard for managing SMS communications across luxury transportation associations",
+    "RAS International SMS tool for managing communications across luxury transportation associations",
 };
 
 export default function RootLayout({

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableHeader,
@@ -8,6 +9,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
+import { ChevronRight } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -50,6 +52,8 @@ export function CampaignHistoryTable({
   campaigns,
   loading,
 }: CampaignHistoryTableProps) {
+  const router = useRouter();
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -87,11 +91,16 @@ export function CampaignHistoryTable({
           <TableHead className="text-[11px] uppercase tracking-wider font-medium">
             Status
           </TableHead>
+          <TableHead className="w-8" />
         </TableRow>
       </TableHeader>
       <TableBody>
         {campaigns.map((campaign) => (
-          <TableRow key={campaign.id} className="border-border/30">
+          <TableRow
+            key={campaign.id}
+            className="border-border/30 cursor-pointer hover:bg-secondary/40"
+            onClick={() => router.push(`/history/${campaign.id}`)}
+          >
             <TableCell className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
               {campaign.send_time
                 ? new Date(campaign.send_time).toLocaleDateString()
@@ -105,6 +114,9 @@ export function CampaignHistoryTable({
             </TableCell>
             <TableCell>
               <StatusDot status={campaign.status} />
+            </TableCell>
+            <TableCell>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
             </TableCell>
           </TableRow>
         ))}
