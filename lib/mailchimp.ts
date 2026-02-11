@@ -247,16 +247,42 @@ export async function createAndSendCampaign(
     recipients.segment_opts = segmentOpts;
   }
 
-  const campaign = (await client.campaigns.create({
-    type: "plaintext",
-    recipients,
-    settings: {
-      subject_line: title,
-      title,
-      from_name: "RAS International",
-      reply_to: "noreply@example.com",
-    },
-  })) as { id: string };
+  // Fetch audience info to get defaults
+  const audienceInfo = (await client.lists.getList(audienceId)) as {
+    campaign_defaults?: {
+      from_name?: string;
+      from_email?: string;
+    };
+  };
+
+  const fromName =
+    audienceInfo.campaign_defaults?.from_name || "RAS International";
+  const replyTo =
+    audienceInfo.campaign_defaults?.from_email ||
+    process.env.MAILCHIMP_FROM_EMAIL ||
+    "";
+
+  let campaign: { id: string };
+
+  try {
+    campaign = (await client.campaigns.create({
+      type: "regular",
+      recipients,
+      settings: {
+        subject_line: title,
+        title,
+        from_name: fromName,
+        reply_to: replyTo,
+      },
+    })) as { id: string };
+  } catch (err: unknown) {
+    // Extract Mailchimp error details for better debugging
+    const mcErr = err as { status?: number; response?: { body?: { detail?: string; errors?: unknown[] } } };
+    const detail = mcErr.response?.body?.detail || "Unknown error";
+    const errors = mcErr.response?.body?.errors;
+    console.error("[Mailchimp] Campaign create failed:", detail, errors);
+    throw new Error(`Mailchimp: ${detail}`);
+  }
 
   await client.campaigns.setContent(campaign.id, { plain_text: message });
   await client.campaigns.send(campaign.id);

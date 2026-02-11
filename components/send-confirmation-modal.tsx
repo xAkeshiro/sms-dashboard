@@ -19,6 +19,7 @@ interface SendConfirmationModalProps {
   includeTags: string[];
   excludeTags: string[];
   recipientCount: number | null;
+  totalAudienceCount: number;
   message: string;
   sending: boolean;
 }
@@ -31,9 +32,12 @@ export function SendConfirmationModal({
   includeTags,
   excludeTags,
   recipientCount,
+  totalAudienceCount,
   message,
   sending,
 }: SendConfirmationModalProps) {
+  const excluded =
+    recipientCount !== null ? totalAudienceCount - recipientCount : null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -72,11 +76,25 @@ export function SendConfirmationModal({
             <div className="h-px bg-border/20" />
 
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Recipients</span>
+              <span className="text-muted-foreground">Total in audience</span>
+              <span className="tabular-nums text-muted-foreground">
+                {totalAudienceCount.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Sending to</span>
               <span className="font-bold tabular-nums text-primary">
                 {recipientCount !== null ? recipientCount.toLocaleString() : "—"}
               </span>
             </div>
+            {excluded != null && excluded > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Not receiving</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {excluded.toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl bg-card border border-border/30 p-4">

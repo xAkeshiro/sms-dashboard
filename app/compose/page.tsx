@@ -145,6 +145,12 @@ function ComposeContent() {
     if (step >= 2) fetchCount();
   }, [step, fetchCount]);
 
+  // Total audience size (before any tag filtering)
+  const totalAudienceCount = selectedAudienceIds.reduce((sum, id) => {
+    const aud = audiences.find((a) => a.id === id);
+    return sum + (aud?.member_count ?? 0);
+  }, 0);
+
   function toggleAudience(id: string) {
     setSelectedAudienceIds((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
@@ -347,7 +353,7 @@ function ComposeContent() {
               <p className="text-xs text-muted-foreground">
                 Optionally filter recipients by tags within selected audiences.
               </p>
-              <RecipientCounter count={recipientCount} loading={countLoading} error={countError} />
+              <RecipientCounter count={recipientCount} totalAudienceCount={totalAudienceCount || null} loading={countLoading} error={countError} />
             </div>
 
             {tagsLoading ? (
@@ -397,7 +403,7 @@ function ComposeContent() {
         {/* Step 3 — Compose */}
         {step === 3 && (
           <div className="space-y-4">
-            <RecipientCounter count={recipientCount} loading={countLoading} error={countError} />
+            <RecipientCounter count={recipientCount} totalAudienceCount={totalAudienceCount || null} loading={countLoading} error={countError} />
             <SmsComposer message={message} onMessageChange={setMessage} />
             <div className="h-px bg-border/30" />
             <div className="flex justify-between">
@@ -435,11 +441,25 @@ function ComposeContent() {
               )}
               <div className="h-px bg-border/20" />
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Recipients</span>
+                <span className="text-muted-foreground">Total in audience</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {totalAudienceCount.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Sending to</span>
                 <span className="font-semibold tabular-nums text-primary">
                   {recipientCount !== null ? recipientCount.toLocaleString() : "—"}
                 </span>
               </div>
+              {recipientCount !== null && totalAudienceCount - recipientCount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Not receiving</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {(totalAudienceCount - recipientCount).toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -477,6 +497,7 @@ function ComposeContent() {
               includeTags={includedTagNames}
               excludeTags={excludedTagNames}
               recipientCount={recipientCount}
+              totalAudienceCount={totalAudienceCount}
               message={message}
               sending={sending}
             />
