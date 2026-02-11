@@ -1,32 +1,19 @@
-export const ASSOCIATIONS = [
-  {
-    id: "glta",
-    tag: "GLTA",
-    name: "Greater Limousine & Transportation Association",
-    accent: "#C9A84C",
-  },
-  {
-    id: "nlta",
-    tag: "NLTA",
-    name: "National Limousine & Transportation Association",
-    accent: "#4C8BC9",
-  },
-  {
-    id: "fla",
-    tag: "FLA",
-    name: "Florida Limousine Association",
-    accent: "#4CC9A8",
-  },
-  {
-    id: "gcla",
-    tag: "GCLA",
-    name: "Greater California Livery Association",
-    accent: "#C94C6E",
-  },
-] as const;
+// Color mapping for known audience names (matched case-insensitively)
+export const AUDIENCE_COLORS: Record<string, string> = {
+  GLTA: "#C9A84C",
+  "Sustainable Travel": "#4C8BC9",
+  FLA: "#4CC9A8",
+  GCLA: "#C94C6E",
+};
 
-export type AssociationId = (typeof ASSOCIATIONS)[number]["id"];
-export type AssociationTag = (typeof ASSOCIATIONS)[number]["tag"];
+export const DEFAULT_ACCENT = "#71717a";
+
+export function getAudienceAccent(name: string): string {
+  const key = Object.keys(AUDIENCE_COLORS).find(
+    (k) => k.toLowerCase() === name.toLowerCase()
+  );
+  return key ? AUDIENCE_COLORS[key] : DEFAULT_ACCENT;
+}
 
 export const SMS_CHAR_LIMIT = 160;
 

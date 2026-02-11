@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSegment, createAndSendSmsCampaign } from "@/lib/mailchimp";
+import { sendToMultipleAudiences } from "@/lib/mailchimp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, title, includeTags, excludeTags } = body;
+    const { message, title, audienceIds, includeTagNames, excludeTagNames } = body;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -13,45 +13,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!includeTags || !Array.isArray(includeTags) || includeTags.length === 0) {
+    if (!audienceIds || !Array.isArray(audienceIds) || audienceIds.length === 0) {
       return NextResponse.json(
-        { error: "At least one association tag is required" },
+        { error: "At least one audience is required" },
         { status: 400 }
       );
     }
 
     const campaignTitle = title || `SMS Campaign - ${new Date().toISOString()}`;
 
-    // Create a segment for targeting
-    const timestamp = Date.now();
-    const segment = await createSegment(
-      `sms_segment_${timestamp}`,
-      includeTags,
-      excludeTags || []
-    );
-
     console.log(
-      `[SMS SEND] Creating campaign - Title: "${campaignTitle}", Segment: ${segment.id}, Recipients: ${segment.member_count}, Message: "${message.substring(0, 50)}..."`
+      `[SMS SEND] Sending to ${audienceIds.length} audience(s) - Title: "${campaignTitle}", Message: "${message.substring(0, 50)}..."`
     );
 
-    // Create and send the campaign
-    const result = await createAndSendSmsCampaign(
-      segment.id,
+    const result = await sendToMultipleAudiences(
+      audienceIds,
       message,
       campaignTitle,
-      includeTags,
-      excludeTags || []
+      includeTagNames || [],
+      excludeTagNames || []
     );
 
     console.log(
-      `[SMS SEND] Campaign sent - ID: ${result.campaignId}, Status: ${result.status}`
+      `[SMS SEND] Campaigns sent - IDs: ${result.campaignIds.join(", ")}, Total recipients: ${result.totalRecipients}`
     );
 
     return NextResponse.json({
       success: true,
-      campaignId: result.campaignId,
-      status: result.status,
-      recipientCount: result.recipientCount || segment.member_count,
+      campaignIds: result.campaignIds,
+      recipientCount: result.totalRecipients,
     });
   } catch (error) {
     console.error("[SMS SEND] Failed:", error);

@@ -5,11 +5,9 @@ import { ArrowRight } from "lucide-react";
 
 interface AssociationCardProps {
   id: string;
-  tag: string;
   name: string;
   accent: string;
   memberCount?: number;
-  lastSmsDate?: string | null;
   selected?: boolean;
   selectable?: boolean;
   onSelect?: (id: string) => void;
@@ -19,7 +17,6 @@ interface AssociationCardProps {
 
 export function AssociationCard({
   id,
-  tag,
   name,
   accent,
   memberCount,
@@ -63,18 +60,15 @@ export function AssociationCard({
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                {tag}
-              </span>
+              <h3 className="text-sm font-medium leading-tight truncate">
+                {name}
+              </h3>
               {selected && (
                 <span className="text-[10px] text-primary font-medium">
                   Selected
                 </span>
               )}
             </div>
-            <h3 className="text-sm font-medium leading-tight truncate mt-0.5">
-              {name}
-            </h3>
           </div>
         </div>
 

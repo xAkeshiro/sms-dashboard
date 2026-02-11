@@ -4,50 +4,43 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { AssociationCard } from "@/components/association-card";
-import { ASSOCIATIONS } from "@/lib/constants";
+import { getAudienceAccent } from "@/lib/constants";
 
-interface TagData {
-  id: number;
+interface Audience {
+  id: string;
   name: string;
   member_count: number;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [tags, setTags] = useState<TagData[]>([]);
+  const [audiences, setAudiences] = useState<Audience[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadTags() {
+    async function loadAudiences() {
       try {
-        const res = await fetch("/api/tags");
-        if (!res.ok) throw new Error("Failed to fetch tags");
+        const res = await fetch("/api/audiences");
+        if (!res.ok) throw new Error("Failed to fetch audiences");
         const data = await res.json();
-        setTags(data.tags || []);
+        setAudiences(data.audiences || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
         setLoading(false);
       }
     }
-    loadTags();
+    loadAudiences();
   }, []);
 
-  function getTagCount(tagName: string): number | undefined {
-    const tag = tags.find(
-      (t) => t.name.toUpperCase() === tagName.toUpperCase()
-    );
-    return tag?.member_count;
-  }
-
-  const totalContacts = ASSOCIATIONS.reduce(
-    (sum, a) => sum + (getTagCount(a.tag) || 0),
+  const totalContacts = audiences.reduce(
+    (sum, a) => sum + a.member_count,
     0
   );
 
   function handleSendSms(id: string) {
-    router.push(`/compose?association=${id}`);
+    router.push(`/compose?audience=${id}`);
   }
 
   return (
@@ -72,10 +65,10 @@ export default function DashboardPage() {
             </div>
             <div className="rounded-xl bg-card border border-border/30 px-5 py-3 text-right">
               <p className="text-2xl font-bold tabular-nums leading-none">
-                {loading ? "..." : tags.length}
+                {loading ? "..." : audiences.length}
               </p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
-                Tags
+                Audiences
               </p>
             </div>
           </div>
@@ -89,7 +82,7 @@ export default function DashboardPage() {
 
         <div className="mb-4">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            Associations
+            Audiences
           </p>
         </div>
 
@@ -104,14 +97,13 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-3">
-            {ASSOCIATIONS.map((association) => (
+            {audiences.map((audience) => (
               <AssociationCard
-                key={association.id}
-                id={association.id}
-                tag={association.tag}
-                name={association.name}
-                accent={association.accent}
-                memberCount={getTagCount(association.tag)}
+                key={audience.id}
+                id={audience.id}
+                name={audience.name}
+                accent={getAudienceAccent(audience.name)}
+                memberCount={audience.member_count}
                 onSendSms={handleSendSms}
               />
             ))}

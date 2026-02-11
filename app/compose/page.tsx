@@ -9,7 +9,7 @@ import { SmsComposer } from "@/components/sms-composer";
 import { RecipientCounter } from "@/components/recipient-counter";
 import { SendConfirmationModal } from "@/components/send-confirmation-modal";
 import { Button } from "@/components/ui/button";
-import { ASSOCIATIONS } from "@/lib/constants";
+import { getAudienceAccent } from "@/lib/constants";
 import {
   ChevronRight,
   ChevronLeft,
@@ -17,6 +17,12 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+
+interface Audience {
+  id: string;
+  name: string;
+  member_count: number;
+}
 
 interface TagData {
   id: number;
@@ -29,14 +35,17 @@ function ComposeContent() {
   const router = useRouter();
 
   const [step, setStep] = useState(1);
-  const [selectedAssociations, setSelectedAssociations] = useState<string[]>([]);
-  const [allTags, setAllTags] = useState<TagData[]>([]);
-  const [excludedTagIds, setExcludedTagIds] = useState<number[]>([]);
+  const [audiences, setAudiences] = useState<Audience[]>([]);
+  const [audiencesLoading, setAudiencesLoading] = useState(true);
+  const [selectedAudienceIds, setSelectedAudienceIds] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagData[]>([]);
+  const [includedTagNames, setIncludedTagNames] = useState<string[]>([]);
+  const [excludedTagNames, setExcludedTagNames] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
   const [countLoading, setCountLoading] = useState(false);
   const [countError, setCountError] = useState<string | null>(null);
-  const [tagsLoading, setTagsLoading] = useState(true);
+  const [tagsLoading, setTagsLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{
@@ -44,49 +53,69 @@ function ComposeContent() {
     message: string;
   } | null>(null);
 
+  // Load audiences
   useEffect(() => {
-    const assoc = searchParams.get("association");
-    if (assoc && ASSOCIATIONS.some((a) => a.id === assoc)) {
-      setSelectedAssociations([assoc]);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    async function loadTags() {
+    async function loadAudiences() {
       try {
-        const res = await fetch("/api/tags");
-        if (!res.ok) throw new Error("Failed to fetch tags");
+        const res = await fetch("/api/audiences");
+        if (!res.ok) throw new Error("Failed to fetch audiences");
         const data = await res.json();
-        setAllTags(data.tags || []);
+        setAudiences(data.audiences || []);
       } catch {
         // handled in UI
       } finally {
-        setTagsLoading(false);
+        setAudiencesLoading(false);
       }
     }
-    loadTags();
+    loadAudiences();
   }, []);
 
-  const getSelectedTagIds = useCallback((): number[] => {
-    return selectedAssociations
-      .map((id) => {
-        const assoc = ASSOCIATIONS.find((a) => a.id === id);
-        if (!assoc) return null;
-        const tag = allTags.find(
-          (t) => t.name.toUpperCase() === assoc.tag.toUpperCase()
-        );
-        return tag?.id ?? null;
-      })
-      .filter((id): id is number => id !== null);
-  }, [selectedAssociations, allTags]);
+  // Pre-select audience from URL param
+  useEffect(() => {
+    const audId = searchParams.get("audience");
+    if (audId && audiences.length > 0 && audiences.some((a) => a.id === audId)) {
+      setSelectedAudienceIds([audId]);
+    }
+  }, [searchParams, audiences]);
 
-  const exclusionTags = allTags.filter(
-    (t) => !ASSOCIATIONS.some((a) => a.tag.toUpperCase() === t.name.toUpperCase())
-  );
+  // Load tags when selected audiences change and we move to step 2
+  const loadTagsForSelectedAudiences = useCallback(async () => {
+    if (selectedAudienceIds.length === 0) {
+      setAvailableTags([]);
+      return;
+    }
+    setTagsLoading(true);
+    try {
+      const allTags: TagData[] = [];
+      const seenNames = new Set<string>();
 
+      for (const audienceId of selectedAudienceIds) {
+        const res = await fetch(`/api/tags?audienceId=${audienceId}`);
+        if (!res.ok) continue;
+        const data = await res.json();
+        for (const tag of data.tags || []) {
+          const key = tag.name.toLowerCase();
+          if (!seenNames.has(key)) {
+            seenNames.add(key);
+            allTags.push(tag);
+          }
+        }
+      }
+      setAvailableTags(allTags);
+    } catch {
+      // handled
+    } finally {
+      setTagsLoading(false);
+    }
+  }, [selectedAudienceIds]);
+
+  useEffect(() => {
+    if (step === 2) loadTagsForSelectedAudiences();
+  }, [step, loadTagsForSelectedAudiences]);
+
+  // Fetch recipient preview count
   const fetchCount = useCallback(async () => {
-    const includeIds = getSelectedTagIds();
-    if (includeIds.length === 0) {
+    if (selectedAudienceIds.length === 0) {
       setRecipientCount(null);
       return;
     }
@@ -94,8 +123,13 @@ function ComposeContent() {
     setCountError(null);
     try {
       const params = new URLSearchParams();
-      params.set("include", includeIds.join(","));
-      if (excludedTagIds.length > 0) params.set("exclude", excludedTagIds.join(","));
+      params.set("audienceIds", selectedAudienceIds.join(","));
+      if (includedTagNames.length > 0) {
+        params.set("includeTagNames", includedTagNames.join(","));
+      }
+      if (excludedTagNames.length > 0) {
+        params.set("excludeTagNames", excludedTagNames.join(","));
+      }
       const res = await fetch(`/api/segments/preview?${params}`);
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
@@ -105,42 +139,49 @@ function ComposeContent() {
     } finally {
       setCountLoading(false);
     }
-  }, [getSelectedTagIds, excludedTagIds]);
+  }, [selectedAudienceIds, includedTagNames, excludedTagNames]);
 
   useEffect(() => {
     if (step >= 2) fetchCount();
   }, [step, fetchCount]);
 
-  function toggleAssociation(id: string) {
-    setSelectedAssociations((prev) =>
+  function toggleAudience(id: string) {
+    setSelectedAudienceIds((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
     );
   }
 
-  function getSelectedNames(): string[] {
-    return selectedAssociations
-      .map((id) => ASSOCIATIONS.find((a) => a.id === id)?.tag || id)
+  function getSelectedAudienceNames(): string[] {
+    return selectedAudienceIds
+      .map((id) => audiences.find((a) => a.id === id)?.name || id)
       .sort();
   }
 
-  function getExcludedNames(): string[] {
-    return excludedTagIds
-      .map((id) => allTags.find((t) => t.id === id)?.name || String(id))
-      .sort();
+  // Toggle tag names for include/exclude (by name, not ID)
+  function toggleIncludeTag(tagName: string) {
+    setIncludedTagNames((prev) =>
+      prev.includes(tagName) ? prev.filter((n) => n !== tagName) : [...prev, tagName]
+    );
+  }
+
+  function toggleExcludeTag(tagName: string) {
+    setExcludedTagNames((prev) =>
+      prev.includes(tagName) ? prev.filter((n) => n !== tagName) : [...prev, tagName]
+    );
   }
 
   async function handleSend() {
     setSending(true);
     try {
-      const includeIds = getSelectedTagIds();
       const res = await fetch("/api/sms/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message,
-          title: `SMS to ${getSelectedNames().join(", ")}`,
-          includeTags: includeIds,
-          excludeTags: excludedTagIds,
+          title: `SMS to ${getSelectedAudienceNames().join(", ")}`,
+          audienceIds: selectedAudienceIds,
+          includeTagNames: includedTagNames,
+          excludeTagNames: excludedTagNames,
         }),
       });
       const data = await res.json();
@@ -160,8 +201,8 @@ function ComposeContent() {
   }
 
   const steps = [
-    { n: 1, label: "Recipients" },
-    { n: 2, label: "Exclusions" },
+    { n: 1, label: "Audiences" },
+    { n: 2, label: "Filter" },
     { n: 3, label: "Compose" },
     { n: 4, label: "Review" },
   ];
@@ -196,8 +237,9 @@ function ComposeContent() {
                 onClick={() => {
                   setSendResult(null);
                   setStep(1);
-                  setSelectedAssociations([]);
-                  setExcludedTagIds([]);
+                  setSelectedAudienceIds([]);
+                  setIncludedTagNames([]);
+                  setExcludedTagNames([]);
                   setMessage("");
                   setRecipientCount(null);
                 }}
@@ -243,7 +285,7 @@ function ComposeContent() {
                         : "border border-border/30 text-muted-foreground/40"
                   }`}
                 >
-                  {step > s.n ? "✓" : s.n}
+                  {step > s.n ? "\u2713" : s.n}
                 </span>
                 <span className="hidden sm:block">{s.label}</span>
               </button>
@@ -256,36 +298,40 @@ function ComposeContent() {
           ))}
         </div>
 
-        {/* Step 1 */}
+        {/* Step 1 — Select Audiences */}
         {step === 1 && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
-              Select one or more associations.
+              Select one or more audiences to send to.
             </p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {ASSOCIATIONS.map((assoc) => (
-                <AssociationCard
-                  key={assoc.id}
-                  id={assoc.id}
-                  tag={assoc.tag}
-                  name={assoc.name}
-                  accent={assoc.accent}
-                  memberCount={
-                    allTags.find((t) => t.name.toUpperCase() === assoc.tag.toUpperCase())
-                      ?.member_count
-                  }
-                  selected={selectedAssociations.includes(assoc.id)}
-                  selectable
-                  onSelect={toggleAssociation}
-                  compact
-                />
-              ))}
-            </div>
+            {audiencesLoading ? (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-[72px] rounded-xl animate-shimmer" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {audiences.map((audience) => (
+                  <AssociationCard
+                    key={audience.id}
+                    id={audience.id}
+                    name={audience.name}
+                    accent={getAudienceAccent(audience.name)}
+                    memberCount={audience.member_count}
+                    selected={selectedAudienceIds.includes(audience.id)}
+                    selectable
+                    onSelect={toggleAudience}
+                    compact
+                  />
+                ))}
+              </div>
+            )}
             <div className="flex justify-end pt-2">
               <Button
                 size="sm"
                 onClick={() => setStep(2)}
-                disabled={selectedAssociations.length === 0}
+                disabled={selectedAudienceIds.length === 0}
               >
                 Next
                 <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -294,25 +340,44 @@ function ComposeContent() {
           </div>
         )}
 
-        {/* Step 2 */}
+        {/* Step 2 — Filter by Tags */}
         {step === 2 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
-                Optionally exclude contacts by tag.
+                Optionally filter recipients by tags within selected audiences.
               </p>
               <RecipientCounter count={recipientCount} loading={countLoading} error={countError} />
             </div>
 
             {tagsLoading ? (
               <div className="h-16 bg-secondary/20 rounded-lg animate-pulse" />
+            ) : availableTags.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4">
+                No tags found in selected audiences.
+              </p>
             ) : (
-              <TagSelector
-                tags={exclusionTags}
-                selectedIds={excludedTagIds}
-                onSelectionChange={setExcludedTagIds}
-                label="Exclude by tag"
-              />
+              <>
+                <TagSelector
+                  tags={availableTags}
+                  selectedNames={includedTagNames}
+                  onToggle={toggleIncludeTag}
+                  label="Only send to contacts with these tags"
+                  placeholder="Search tags to include..."
+                  mode="include"
+                />
+
+                <div className="h-px bg-border/20" />
+
+                <TagSelector
+                  tags={availableTags}
+                  selectedNames={excludedTagNames}
+                  onToggle={toggleExcludeTag}
+                  label="Exclude contacts with these tags"
+                  placeholder="Search tags to exclude..."
+                  mode="exclude"
+                />
+              </>
             )}
 
             <div className="h-px bg-border/30" />
@@ -329,7 +394,7 @@ function ComposeContent() {
           </div>
         )}
 
-        {/* Step 3 */}
+        {/* Step 3 — Compose */}
         {step === 3 && (
           <div className="space-y-4">
             <RecipientCounter count={recipientCount} loading={countLoading} error={countError} />
@@ -348,18 +413,24 @@ function ComposeContent() {
           </div>
         )}
 
-        {/* Step 4 */}
+        {/* Step 4 — Review */}
         {step === 4 && (
           <div className="space-y-6 animate-slide-up">
             <div className="rounded-xl bg-card border border-border/30 p-5 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">To</span>
-                <span className="font-medium">{getSelectedNames().join(", ")}</span>
+                <span className="font-medium">{getSelectedAudienceNames().join(", ")}</span>
               </div>
-              {getExcludedNames().length > 0 && (
+              {includedTagNames.length > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Only tags</span>
+                  <span className="text-emerald-400">{includedTagNames.join(", ")}</span>
+                </div>
+              )}
+              {excludedTagNames.length > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Excluding</span>
-                  <span className="text-muted-foreground">{getExcludedNames().join(", ")}</span>
+                  <span className="text-muted-foreground">{excludedTagNames.join(", ")}</span>
                 </div>
               )}
               <div className="h-px bg-border/20" />
@@ -402,8 +473,9 @@ function ComposeContent() {
               open={showConfirm}
               onOpenChange={setShowConfirm}
               onConfirm={handleSend}
-              associations={getSelectedNames()}
-              exclusions={getExcludedNames()}
+              audiences={getSelectedAudienceNames()}
+              includeTags={includedTagNames}
+              excludeTags={excludedTagNames}
               recipientCount={recipientCount}
               message={message}
               sending={sending}

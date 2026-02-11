@@ -12,18 +12,20 @@ interface Tag {
 
 interface TagSelectorProps {
   tags: Tag[];
-  selectedIds: number[];
-  onSelectionChange: (ids: number[]) => void;
+  selectedNames: string[];
+  onToggle: (tagName: string) => void;
   label?: string;
   placeholder?: string;
+  mode?: "include" | "exclude";
 }
 
 export function TagSelector({
   tags,
-  selectedIds,
-  onSelectionChange,
+  selectedNames,
+  onToggle,
   label = "Select tags",
   placeholder = "Search tags...",
+  mode = "include",
 }: TagSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -32,19 +34,7 @@ export function TagSelector({
     tag.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const selectedTags = tags.filter((t) => selectedIds.includes(t.id));
-
-  function toggleTag(tagId: number) {
-    if (selectedIds.includes(tagId)) {
-      onSelectionChange(selectedIds.filter((id) => id !== tagId));
-    } else {
-      onSelectionChange([...selectedIds, tagId]);
-    }
-  }
-
-  function removeTag(tagId: number) {
-    onSelectionChange(selectedIds.filter((id) => id !== tagId));
-  }
+  const selectedTags = tags.filter((t) => selectedNames.includes(t.name));
 
   return (
     <div className="space-y-2">
@@ -57,12 +47,17 @@ export function TagSelector({
           {selectedTags.map((tag) => (
             <span
               key={tag.id}
-              className="inline-flex items-center gap-1.5 text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-lg"
+              className={cn(
+                "inline-flex items-center gap-1.5 text-xs border px-2.5 py-1 rounded-lg",
+                mode === "include"
+                  ? "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
+                  : "bg-primary/10 text-primary border-primary/20"
+              )}
             >
               {tag.name}
               <button
                 type="button"
-                onClick={() => removeTag(tag.id)}
+                onClick={() => onToggle(tag.name)}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-2.5 h-2.5" />
@@ -82,9 +77,9 @@ export function TagSelector({
           )}
         >
           <span className="text-muted-foreground">
-            {selectedIds.length === 0
+            {selectedNames.length === 0
               ? "Select tags..."
-              : `${selectedIds.length} selected`}
+              : `${selectedNames.length} selected`}
           </span>
           <ChevronDown
             className={cn(
@@ -113,16 +108,18 @@ export function TagSelector({
                 </p>
               ) : (
                 filteredTags.map((tag) => {
-                  const isSelected = selectedIds.includes(tag.id);
+                  const isSelected = selectedNames.includes(tag.name);
                   return (
                     <button
                       key={tag.id}
                       type="button"
-                      onClick={() => toggleTag(tag.id)}
+                      onClick={() => onToggle(tag.name)}
                       className={cn(
                         "w-full flex items-center justify-between px-2 py-1 text-xs rounded transition-colors",
                         isSelected
-                          ? "text-primary"
+                          ? mode === "include"
+                            ? "text-emerald-400"
+                            : "text-primary"
                           : "text-foreground hover:bg-secondary"
                       )}
                     >

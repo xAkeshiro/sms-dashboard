@@ -15,8 +15,9 @@ interface SendConfirmationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-  associations: string[];
-  exclusions: string[];
+  audiences: string[];
+  includeTags: string[];
+  excludeTags: string[];
   recipientCount: number | null;
   message: string;
   sending: boolean;
@@ -26,8 +27,9 @@ export function SendConfirmationModal({
   open,
   onOpenChange,
   onConfirm,
-  associations,
-  exclusions,
+  audiences,
+  includeTags,
+  excludeTags,
   recipientCount,
   message,
   sending,
@@ -46,14 +48,23 @@ export function SendConfirmationModal({
           <div className="rounded-xl bg-secondary/30 border border-border/20 p-4 space-y-2.5">
             <div className="flex justify-between">
               <span className="text-muted-foreground">To</span>
-              <span className="font-medium">{associations.join(", ")}</span>
+              <span className="font-medium">{audiences.join(", ")}</span>
             </div>
 
-            {exclusions.length > 0 && (
+            {includeTags.length > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Only tags</span>
+                <span className="text-emerald-400">
+                  {includeTags.join(", ")}
+                </span>
+              </div>
+            )}
+
+            {excludeTags.length > 0 && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Excluding</span>
                 <span className="text-muted-foreground">
-                  {exclusions.join(", ")}
+                  {excludeTags.join(", ")}
                 </span>
               </div>
             )}

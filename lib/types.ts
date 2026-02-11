@@ -1,3 +1,9 @@
+export interface MailchimpAudience {
+  id: string;
+  name: string;
+  member_count: number;
+}
+
 export interface MailchimpCampaign {
   id: string;
   type?: string;

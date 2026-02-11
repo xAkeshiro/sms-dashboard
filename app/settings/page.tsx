@@ -2,8 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Nav } from "@/components/nav";
-import { ASSOCIATIONS } from "@/lib/constants";
+import { getAudienceAccent } from "@/lib/constants";
 import { RefreshCw } from "lucide-react";
+
+interface Audience {
+  id: string;
+  name: string;
+  member_count: number;
+}
 
 interface TagData {
   id: number;
@@ -12,22 +18,39 @@ interface TagData {
 }
 
 export default function SettingsPage() {
-  const [tags, setTags] = useState<TagData[]>([]);
+  const [audiences, setAudiences] = useState<Audience[]>([]);
+  const [tagsByAudience, setTagsByAudience] = useState<Record<string, TagData[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiConnected, setApiConnected] = useState<boolean | null>(null);
 
-  const loadTags = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/tags");
-      if (!res.ok) throw new Error("Failed to fetch tags");
+      const res = await fetch("/api/audiences");
+      if (!res.ok) throw new Error("Failed to fetch audiences");
       const data = await res.json();
-      setTags(data.tags || []);
+      const auds: Audience[] = data.audiences || [];
+      setAudiences(auds);
       setApiConnected(true);
+
+      // Fetch tags for each audience
+      const tagsMap: Record<string, TagData[]> = {};
+      for (const aud of auds) {
+        try {
+          const tagRes = await fetch(`/api/tags?audienceId=${aud.id}`);
+          if (tagRes.ok) {
+            const tagData = await tagRes.json();
+            tagsMap[aud.id] = tagData.tags || [];
+          }
+        } catch {
+          // skip
+        }
+      }
+      setTagsByAudience(tagsMap);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load tags");
+      setError(err instanceof Error ? err.message : "Failed to load data");
       setApiConnected(false);
     } finally {
       setLoading(false);
@@ -35,12 +58,8 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    loadTags();
-  }, [loadTags]);
-
-  const otherTags = tags.filter(
-    (t) => !ASSOCIATIONS.some((a) => a.tag.toUpperCase() === t.name.toUpperCase())
-  );
+    loadData();
+  }, [loadData]);
 
   return (
     <>
@@ -49,7 +68,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between mb-10">
           <h1 className="text-xl font-bold tracking-tight">Settings</h1>
           <button
-            onClick={loadTags}
+            onClick={loadData}
             disabled={loading}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -82,7 +101,7 @@ export default function SettingsPage() {
               </span>
               {apiConnected && (
                 <span className="text-xs text-muted-foreground ml-2">
-                  {tags.length} tags synced
+                  {audiences.length} audience{audiences.length !== 1 ? "s" : ""} found
                 </span>
               )}
             </div>
@@ -92,10 +111,10 @@ export default function SettingsPage() {
           )}
         </section>
 
-        {/* Association Tags */}
+        {/* Audiences */}
         <section className="mb-10">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-            Association Tags
+            Audiences
           </p>
           {loading ? (
             <div className="space-y-2">
@@ -105,54 +124,37 @@ export default function SettingsPage() {
             </div>
           ) : (
             <div className="rounded-xl bg-card border border-border/30 divide-y divide-border/20 overflow-hidden">
-              {ASSOCIATIONS.map((assoc) => {
-                const tag = tags.find(
-                  (t) => t.name.toUpperCase() === assoc.tag.toUpperCase()
-                );
+              {audiences.map((aud) => {
+                const tags = tagsByAudience[aud.id] || [];
                 return (
-                  <div
-                    key={assoc.id}
-                    className="flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: assoc.accent }}
-                      />
-                      <span className="text-sm font-medium">{assoc.tag}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {assoc.name}
+                  <div key={aud.id} className="px-4 py-3 hover:bg-secondary/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: getAudienceAccent(aud.name) }}
+                        />
+                        <span className="text-sm font-medium">{aud.name}</span>
+                      </div>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {aud.member_count.toLocaleString()}
                       </span>
                     </div>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {tag ? tag.member_count.toLocaleString() : "—"}
-                    </span>
+                    {tags.length > 0 && (
+                      <div className="ml-5 mt-1.5 flex flex-wrap gap-1">
+                        {tags.map((tag) => (
+                          <span
+                            key={tag.id}
+                            className="text-[10px] text-muted-foreground bg-secondary/40 px-1.5 py-0.5 rounded"
+                          >
+                            {tag.name} ({tag.member_count})
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
-            </div>
-          )}
-        </section>
-
-        {/* Other Tags */}
-        <section>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-            Other Tags ({otherTags.length})
-          </p>
-          {loading ? (
-            <div className="h-12 rounded-xl animate-shimmer" />
-          ) : otherTags.length === 0 ? (
-            <p className="text-xs text-muted-foreground">None</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {otherTags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="text-xs text-muted-foreground bg-card border border-border/30 px-2.5 py-1 rounded-lg"
-                >
-                  {tag.name} ({tag.member_count})
-                </span>
-              ))}
             </div>
           )}
         </section>

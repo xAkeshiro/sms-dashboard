@@ -4,30 +4,32 @@ import { previewSegmentCount } from "@/lib/mailchimp";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const includeParam = searchParams.get("include");
-    const excludeParam = searchParams.get("exclude");
+    const audienceIds = searchParams.get("audienceIds");
+    const includeTagNames = searchParams.get("includeTagNames");
+    const excludeTagNames = searchParams.get("excludeTagNames");
 
-    if (!includeParam) {
+    if (!audienceIds) {
       return NextResponse.json(
-        { error: "At least one include tag ID is required" },
+        { error: "audienceIds query parameter is required" },
         { status: 400 }
       );
     }
 
-    const includeTags = includeParam.split(",").map(Number).filter(Boolean);
-    const excludeTags = excludeParam
-      ? excludeParam.split(",").map(Number).filter(Boolean)
+    const ids = audienceIds.split(",").filter(Boolean);
+    const includeNames = includeTagNames
+      ? includeTagNames.split(",").filter(Boolean)
+      : [];
+    const excludeNames = excludeTagNames
+      ? excludeTagNames.split(",").filter(Boolean)
       : [];
 
-    if (includeTags.length === 0) {
-      return NextResponse.json(
-        { error: "Invalid include tag IDs" },
-        { status: 400 }
-      );
-    }
+    // Sum preview counts across all selected audiences
+    const counts = await Promise.all(
+      ids.map((id) => previewSegmentCount(id, includeNames, excludeNames))
+    );
+    const total = counts.reduce((sum, c) => sum + c, 0);
 
-    const count = await previewSegmentCount(includeTags, excludeTags);
-    return NextResponse.json({ count });
+    return NextResponse.json({ count: total });
   } catch (error) {
     console.error("Failed to preview segment:", error);
     return NextResponse.json(
