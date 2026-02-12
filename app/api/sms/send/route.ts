@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendToMultipleAudiences } from "@/lib/mailchimp";
+import { sendSmsCampaign } from "@/lib/mailchimp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       `[SMS SEND] Sending to ${audienceIds.length} audience(s) - Title: "${campaignTitle}", Message: "${message.substring(0, 50)}..."`
     );
 
-    const result = await sendToMultipleAudiences(
+    const result = await sendSmsCampaign(
       audienceIds,
       message,
       campaignTitle,
@@ -35,13 +35,14 @@ export async function POST(request: NextRequest) {
     );
 
     console.log(
-      `[SMS SEND] Campaigns sent - IDs: ${result.campaignIds.join(", ")}, Total recipients: ${result.totalRecipients}`
+      `[SMS SEND] Complete — Sent: ${result.sent}, Failed: ${result.failed}, Total: ${result.total}`
     );
 
     return NextResponse.json({
       success: true,
-      campaignIds: result.campaignIds,
-      recipientCount: result.totalRecipients,
+      sent: result.sent,
+      failed: result.failed,
+      recipientCount: result.total,
     });
   } catch (error) {
     console.error("[SMS SEND] Failed:", error);

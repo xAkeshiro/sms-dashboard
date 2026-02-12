@@ -70,11 +70,14 @@ function ComposeContent() {
     loadAudiences();
   }, []);
 
-  // Pre-select audience from URL param
+  // Pre-select audience from URL param, or auto-select if only one audience
   useEffect(() => {
+    if (audiences.length === 0) return;
     const audId = searchParams.get("audience");
-    if (audId && audiences.length > 0 && audiences.some((a) => a.id === audId)) {
+    if (audId && audiences.some((a) => a.id === audId)) {
       setSelectedAudienceIds([audId]);
+    } else if (audiences.length === 1) {
+      setSelectedAudienceIds([audiences[0].id]);
     }
   }, [searchParams, audiences]);
 
@@ -194,8 +197,8 @@ function ComposeContent() {
       setSendResult({
         success: res.ok,
         message: res.ok
-          ? `Sent to ${data.recipientCount} recipients.`
-          : data.error || "Failed to send",
+          ? `Sent ${data.sent} of ${data.recipientCount} SMS messages.${data.failed > 0 ? ` ${data.failed} failed.` : ""}`
+          : data.details || data.error || "Failed to send",
       });
       setShowConfirm(false);
     } catch {

@@ -1,4 +1,6 @@
 import mailchimp from "@mailchimp/mailchimp_marketing";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mailchimpTransactional = require("@mailchimp/mailchimp_transactional");
 import {
   getMockAudiences,
   getMockTagsForAudience,
@@ -20,6 +22,12 @@ function isConfigured(): boolean {
   );
 }
 
+function isSmsConfigured(): boolean {
+  return !!(
+    process.env.MAILCHIMP_TRANSACTIONAL_KEY && process.env.SMS_FROM_NUMBER
+  );
+}
+
 function getClient(): MailchimpClient {
   if (!initialized) {
     mailchimp.setConfig({
@@ -29,6 +37,11 @@ function getClient(): MailchimpClient {
     initialized = true;
   }
   return mailchimp;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getTransactionalClient(): any {
+  return mailchimpTransactional(process.env.MAILCHIMP_TRANSACTIONAL_KEY);
 }
 
 // ─── Audiences ──────────────────────────────────────────────
@@ -133,7 +146,6 @@ export async function previewSegmentCount(
 
   // Resolve tag names to IDs for this audience
   const tags = await fetchTagsForAudience(audienceId);
-
   const conditions: Record<string, unknown>[] = [];
 
   for (const name of includeTagNames) {
@@ -166,7 +178,6 @@ export async function previewSegmentCount(
     return aud?.member_count ?? 0;
   }
 
-  // Create a temporary segment
   const client = getClient();
   const timestamp = Date.now();
   const response = (await client.lists.createSegment(audienceId, {
@@ -188,24 +199,25 @@ export async function previewSegmentCount(
   return count;
 }
 
-// ─── Send Campaign ──────────────────────────────────────────
+// ─── Fetch Audience Members with Phone Numbers ──────────────
 
-export async function createAndSendCampaign(
+interface AudienceMember {
+  email: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
+}
+
+async function fetchAudienceMembers(
   audienceId: string,
-  message: string,
-  title: string,
   includeTagNames: string[],
   excludeTagNames: string[]
-): Promise<{ campaignId: string; status: string; recipientCount: number }> {
-  if (!isConfigured()) {
-    const result = sendMockCampaign([audienceId], message, title, includeTagNames, excludeTagNames);
-    return { campaignId: result.campaignId, status: "sent", recipientCount: result.recipientCount };
-  }
-
+): Promise<AudienceMember[]> {
   const client = getClient();
+  const members: AudienceMember[] = [];
 
-  // Build segment options for inclusions and exclusions
-  let segmentOpts: Record<string, unknown> | undefined;
+  // Build segment conditions for tag filtering
+  let segmentId: number | null = null;
   if (includeTagNames.length > 0 || excludeTagNames.length > 0) {
     const tags = await fetchTagsForAudience(audienceId);
     const conditions: Record<string, unknown>[] = [];
@@ -235,93 +247,155 @@ export async function createAndSendCampaign(
     }
 
     if (conditions.length > 0) {
-      segmentOpts = {
-        match: includeTagNames.length > 1 ? "any" : "all",
-        conditions,
-      };
+      const seg = (await client.lists.createSegment(audienceId, {
+        name: `_sms_send_${Date.now()}`,
+        options: {
+          match: includeTagNames.length > 1 ? "any" : "all",
+          conditions,
+        },
+      })) as MailchimpSegment;
+      segmentId = seg.id;
     }
   }
 
-  const recipients: Record<string, unknown> = { list_id: audienceId };
-  if (segmentOpts) {
-    recipients.segment_opts = segmentOpts;
+  // Paginate through all members
+  let offset = 0;
+  const batchSize = 500;
+
+  while (true) {
+    let response;
+    if (segmentId) {
+      response = (await client.lists.getSegmentMembersList(
+        audienceId,
+        segmentId.toString(),
+        { count: batchSize, offset, fields: "members.email_address,members.merge_fields,members.status" }
+      )) as { members: Array<{ email_address: string; merge_fields: Record<string, string>; status: string }> };
+    } else {
+      response = (await client.lists.getListMembersInfo(audienceId, {
+        count: batchSize,
+        offset,
+        status: "subscribed",
+        fields: "members.email_address,members.merge_fields,members.status",
+      })) as { members: Array<{ email_address: string; merge_fields: Record<string, string>; status: string }> };
+    }
+
+    if (!response.members || response.members.length === 0) break;
+
+    for (const m of response.members) {
+      if (m.status !== "subscribed") continue;
+      const phone = m.merge_fields?.PHONE || m.merge_fields?.SMS || m.merge_fields?.MMERGE4 || "";
+      if (phone) {
+        members.push({
+          email: m.email_address,
+          phone: normalizePhone(phone),
+          firstName: m.merge_fields?.FNAME || "",
+          lastName: m.merge_fields?.LNAME || "",
+        });
+      }
+    }
+
+    if (response.members.length < batchSize) break;
+    offset += batchSize;
   }
 
-  // Fetch audience info to get defaults
-  const audienceInfo = (await client.lists.getList(audienceId)) as {
-    campaign_defaults?: {
-      from_name?: string;
-      from_email?: string;
-    };
-  };
-
-  const fromName =
-    audienceInfo.campaign_defaults?.from_name || "RAS International";
-  const replyTo =
-    audienceInfo.campaign_defaults?.from_email ||
-    process.env.MAILCHIMP_FROM_EMAIL ||
-    "";
-
-  let campaign: { id: string };
-
-  try {
-    campaign = (await client.campaigns.create({
-      type: "regular",
-      recipients,
-      settings: {
-        subject_line: title,
-        title,
-        from_name: fromName,
-        reply_to: replyTo,
-      },
-    })) as { id: string };
-  } catch (err: unknown) {
-    // Extract Mailchimp error details for better debugging
-    const mcErr = err as { status?: number; response?: { body?: { detail?: string; errors?: unknown[] } } };
-    const detail = mcErr.response?.body?.detail || "Unknown error";
-    const errors = mcErr.response?.body?.errors;
-    console.error("[Mailchimp] Campaign create failed:", detail, errors);
-    throw new Error(`Mailchimp: ${detail}`);
+  // Clean up temp segment
+  if (segmentId) {
+    try {
+      await client.lists.deleteSegment(audienceId, segmentId.toString());
+    } catch {
+      console.warn("Failed to delete send segment:", segmentId);
+    }
   }
 
-  await client.campaigns.setContent(campaign.id, { plain_text: message });
-  await client.campaigns.send(campaign.id);
-
-  // Get recipient count from campaign info
-  const info = (await client.campaigns.get(campaign.id)) as {
-    recipients: { recipient_count: number };
-  };
-
-  return {
-    campaignId: campaign.id,
-    status: "sent",
-    recipientCount: info.recipients.recipient_count,
-  };
+  return members;
 }
 
-/** Send to multiple audiences with the same message. Returns combined results. */
-export async function sendToMultipleAudiences(
+/** Normalize phone to E.164 format */
+function normalizePhone(phone: string): string {
+  // Strip everything except digits and leading +
+  const digits = phone.replace(/[^\d+]/g, "");
+  if (digits.startsWith("+")) return digits;
+  if (digits.length === 10) return `+1${digits}`; // US numbers
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return `+${digits}`;
+}
+
+// ─── Send SMS via Transactional API ─────────────────────────
+
+export async function sendSmsCampaign(
   audienceIds: string[],
   message: string,
   title: string,
   includeTagNames: string[],
   excludeTagNames: string[]
-): Promise<{ campaignIds: string[]; totalRecipients: number }> {
+): Promise<{ sent: number; failed: number; total: number }> {
   if (!isConfigured()) {
     const result = sendMockCampaign(audienceIds, message, title, includeTagNames, excludeTagNames);
-    return { campaignIds: [result.campaignId], totalRecipients: result.recipientCount };
+    return { sent: result.recipientCount, failed: 0, total: result.recipientCount };
   }
 
-  const results = await Promise.all(
-    audienceIds.map((id) =>
-      createAndSendCampaign(id, message, title, includeTagNames, excludeTagNames)
-    )
+  if (!isSmsConfigured()) {
+    throw new Error(
+      "SMS not configured. Set MAILCHIMP_TRANSACTIONAL_KEY and SMS_FROM_NUMBER environment variables."
+    );
+  }
+
+  const transactional = getTransactionalClient();
+  const fromNumber = process.env.SMS_FROM_NUMBER!;
+
+  // Collect all phone numbers from selected audiences
+  const allMembers: AudienceMember[] = [];
+  for (const audienceId of audienceIds) {
+    const members = await fetchAudienceMembers(audienceId, includeTagNames, excludeTagNames);
+    allMembers.push(...members);
+  }
+
+  // Deduplicate by phone number
+  const seen = new Set<string>();
+  const uniqueMembers = allMembers.filter((m) => {
+    if (seen.has(m.phone)) return false;
+    seen.add(m.phone);
+    return true;
+  });
+
+  console.log(
+    `[SMS SEND] Sending "${title}" to ${uniqueMembers.length} phone numbers from ${fromNumber}`
   );
 
-  return {
-    campaignIds: results.map((r) => r.campaignId),
-    totalRecipients: results.reduce((sum, r) => sum + r.recipientCount, 0),
-  };
+  let sent = 0;
+  let failed = 0;
+
+  // Send SMS to each recipient
+  for (const member of uniqueMembers) {
+    // Replace merge fields in message
+    let personalizedMessage = message
+      .replace(/\*\|FNAME\|\*/g, member.firstName)
+      .replace(/\*\|LNAME\|\*/g, member.lastName)
+      .replace(/\*\|EMAIL\|\*/g, member.email)
+      .replace(/\*\|PHONE\|\*/g, member.phone);
+
+    try {
+      await transactional.messages.sendSms({
+        message: {
+          to: member.phone,
+          from: fromNumber,
+          text: personalizedMessage,
+          consent: "recurring",
+        },
+      });
+      sent++;
+    } catch (err: unknown) {
+      failed++;
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      console.error(`[SMS SEND] Failed to send to ${member.phone}: ${errMsg}`);
+    }
+  }
+
+  console.log(
+    `[SMS SEND] Complete — Sent: ${sent}, Failed: ${failed}, Total: ${uniqueMembers.length}`
+  );
+
+  return { sent, failed, total: uniqueMembers.length };
 }
 
 // ─── Campaign History ───────────────────────────────────────
@@ -335,14 +409,10 @@ export async function fetchCampaignHistory(
     return getMockCampaignHistory().slice(0, count) as MailchimpCampaign[];
   }
 
-  const client = getClient();
-  const response = (await client.campaigns.list({
-    count,
-    sort_field: "send_time",
-    sort_dir: "DESC",
-  })) as { campaigns: MailchimpCampaign[] };
-
-  return response.campaigns || [];
+  // For now, return mock history since Transactional SMS doesn't have
+  // a campaign history like the Marketing API does.
+  // Real SMS tracking would come from Transactional API message search.
+  return getMockCampaignHistory().slice(0, count) as MailchimpCampaign[];
 }
 
 export async function fetchCampaignById(
@@ -353,13 +423,8 @@ export async function fetchCampaignById(
     return mock ? (mock as MailchimpCampaign) : null;
   }
 
-  try {
-    const client = getClient();
-    const campaign = (await client.campaigns.get(id)) as MailchimpCampaign;
-    return campaign;
-  } catch {
-    return null;
-  }
+  const mock = getMockCampaignById(id);
+  return mock ? (mock as MailchimpCampaign) : null;
 }
 
 export async function pingMailchimp(): Promise<boolean> {

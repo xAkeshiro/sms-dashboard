@@ -8,6 +8,9 @@ export const AUDIENCE_COLORS: Record<string, string> = {
 
 export const DEFAULT_ACCENT = "#71717a";
 
+// SMS-enabled audiences (filter to only these). Set to null to show all.
+export const SMS_ENABLED_AUDIENCES: string[] | null = ["GCLA"];
+
 export function getAudienceAccent(name: string): string {
   const key = Object.keys(AUDIENCE_COLORS).find(
     (k) => k.toLowerCase() === name.toLowerCase()
